@@ -2,6 +2,7 @@ import { useNavigate, useParams } from '@tanstack/react-router';
 import { format } from 'date-fns';
 import { useEffect } from 'react';
 import { Button } from '../components/ui/Button';
+import { ErrorScreen, LoadingScreen } from '../components/ui/StatusScreen';
 import { useSession } from '../lib/auth';
 import { coverImageUrl } from '../lib/images';
 import { pendingInvite, useClaimInvite, useInvitePreview } from '../lib/invites';
@@ -31,17 +32,14 @@ export function JoinInvite() {
     }
   }, [session.data, preview.data, token, claim, navigate]);
 
-  if (preview.isLoading) {
-    return <div className="flex-1 flex items-center justify-center text-fg-muted">Loading…</div>;
-  }
+  if (preview.isLoading) return <LoadingScreen />;
   if (preview.error || !preview.data) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-        <p className="text-fg">This invite link is invalid or expired.</p>
-        <Button className="mt-4" onClick={() => navigate({ to: '/parties' })}>
-          Go to parties
-        </Button>
-      </div>
+      <ErrorScreen
+        message="This invite link is invalid or expired."
+        onRetry={() => navigate({ to: '/parties' })}
+        retryLabel="Go to parties"
+      />
     );
   }
 
@@ -79,18 +77,9 @@ export function JoinInvite() {
     );
   }
 
-  return (
-    <div className="flex-1 flex items-center justify-center text-fg-muted">
-      {claim.isError ? (
-        <div className="px-6 text-center">
-          <p className="text-danger">{(claim.error as Error).message}</p>
-          <Button className="mt-4" onClick={() => claim.mutate(token)}>
-            Try again
-          </Button>
-        </div>
-      ) : (
-        'Joining…'
-      )}
-    </div>
+  return claim.isError ? (
+    <ErrorScreen message={(claim.error as Error).message} onRetry={() => claim.mutate(token)} />
+  ) : (
+    <LoadingScreen label="Joining…" />
   );
 }

@@ -1,5 +1,6 @@
 import { Outlet, useNavigate } from '@tanstack/react-router';
 import { useEffect } from 'react';
+import { LoadingScreen } from '../components/ui/StatusScreen';
 import { useSession } from '../lib/auth';
 
 export function AppLayout() {
@@ -16,9 +17,7 @@ export function AppLayout() {
     }
   }, [session.isLoading, session.data, navigate]);
 
-  if (session.isLoading) {
-    return <div className="flex-1 flex items-center justify-center text-fg-muted">Loading…</div>;
-  }
+  if (session.isLoading) return <LoadingScreen />;
   if (!session.data) return null;
 
   return (

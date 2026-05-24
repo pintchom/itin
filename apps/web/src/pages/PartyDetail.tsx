@@ -4,6 +4,7 @@ import { ChevronLeft, Pencil, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { PartyCalendar } from '../components/calendar/PartyCalendar';
 import { Button } from '../components/ui/Button';
+import { ErrorScreen, LoadingScreen } from '../components/ui/StatusScreen';
 import { coverImageUrl } from '../lib/images';
 import { buildInviteUrl, useCreateInvite } from '../lib/invites';
 import { useParty } from '../lib/parties';
@@ -38,13 +39,9 @@ export function PartyDetail() {
     await navigator.clipboard?.writeText(url).catch(() => {});
   };
 
-  if (party.isLoading) {
-    return <div className="flex-1 flex items-center justify-center text-fg-muted">Loading…</div>;
-  }
+  if (party.isLoading) return <LoadingScreen />;
   if (party.error || !party.data) {
-    return (
-      <div className="px-5 py-10 text-danger">{(party.error as Error)?.message ?? 'Not found'}</div>
-    );
+    return <ErrorScreen message={(party.error as Error)?.message ?? 'Not found'} />;
   }
   const p = party.data;
   const isHost = p.role === 'HOST';

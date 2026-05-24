@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router';
 import { format } from 'date-fns';
 import { CalendarRange, Plus } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { ErrorScreen, LoadingScreen } from '../components/ui/StatusScreen';
 import { coverImageUrl } from '../lib/images';
 import { type PartySummary, useParties } from '../lib/parties';
 
@@ -31,9 +32,9 @@ export function PartiesList() {
       </header>
 
       {parties.isLoading ? (
-        <div className="px-5 py-10 text-fg-muted">Loading…</div>
+        <LoadingScreen />
       ) : parties.error ? (
-        <div className="px-5 py-10 text-danger">{(parties.error as Error).message}</div>
+        <ErrorScreen message={(parties.error as Error).message} />
       ) : parties.data && parties.data.length > 0 ? (
         <ul className="px-5 space-y-3 pb-12">
           {parties.data.map((p) => (
