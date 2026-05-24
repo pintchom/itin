@@ -6,7 +6,7 @@ import { cn } from '../lib/cn';
 import { profileImageUrl } from '../lib/images';
 
 type AppHeaderProps = {
-  title: string;
+  title: ReactNode;
   children?: ReactNode;
   className?: string;
 };
@@ -21,7 +21,7 @@ export function AppHeader({ title, children, className }: AppHeaderProps) {
 
   return (
     <header className={cn('flex items-center justify-between px-5 pt-2 pb-3', className)}>
-      <h1 className="text-2xl font-semibold">{title}</h1>
+      {typeof title === 'string' ? <h1 className="text-2xl font-semibold">{title}</h1> : title}
       <div className="flex items-center gap-2">
         {children}
         <Link

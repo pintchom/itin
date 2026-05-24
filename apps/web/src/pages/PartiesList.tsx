@@ -12,7 +12,14 @@ export function PartiesList() {
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto">
-      <AppHeader title="Your trips">
+      <AppHeader
+        title={
+          <Link to="/parties" className="flex items-center gap-2">
+            <img src="/icon.svg" alt="" className="h-7 w-7" />
+            <span className="text-2xl font-semibold tracking-tight lowercase">itin</span>
+          </Link>
+        }
+      >
         <Button asChild size="icon" aria-label="New party">
           <Link to="/parties/new">
             <Plus className="h-5 w-5" />
