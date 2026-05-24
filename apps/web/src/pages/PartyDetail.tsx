@@ -40,7 +40,7 @@ export function PartyDetail() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <header className="shrink-0 relative w-full aspect-[16/9] bg-bg-elev">
+      <header className="shrink-0 relative z-10 w-full aspect-[16/9] bg-bg-elev">
         {p.coverImageKey && (
           <img
             src={coverImageUrl(p.coverImageKey, 'lg')}
@@ -92,6 +92,11 @@ export function PartyDetail() {
           </div>
           <MembersStack members={p.members} onClick={() => setMembersOpen(true)} />
         </div>
+
+        <div
+          aria-hidden
+          className="absolute left-0 right-0 top-full h-6 pointer-events-none bg-gradient-to-b from-black/55 via-black/20 to-transparent"
+        />
       </header>
 
       <div className="flex-1 overflow-y-auto overscroll-contain min-h-0">
