@@ -1,20 +1,13 @@
 import { dayKeyInZone, enumerateDates, parseCivilDate } from '@itin/shared/time';
 import { format } from 'date-fns';
 import { CalendarPlus } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { type Activity, useActivities } from '../../lib/activities';
-import { cn } from '../../lib/cn';
 import type { PartyDetail } from '../../lib/parties';
-
-const sectionId = (iso: string) => `day-${iso}`;
 
 export function PartyCalendar({ party }: { party: PartyDetail }) {
   const allDays = useMemo(() => enumerateDates(party.startDate, party.endDate), [party]);
   const activities = useActivities(party.id);
-
-  const rootRef = useRef<HTMLDivElement>(null);
-  const tabBarRef = useRef<HTMLDivElement>(null);
-  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   const activitiesByDay = useMemo(() => {
     const map: Record<string, Activity[]> = {};
@@ -32,41 +25,18 @@ export function PartyCalendar({ party }: { party: PartyDetail }) {
     [allDays, activitiesByDay]
   );
 
-  const scrollRoot = useScrollRoot(rootRef);
-  const activeIso = useScrollSpy(scrollRoot, populatedDays);
-
-  const scrollToDay = useCallback(
-    (iso: string) => {
-      if (!scrollRoot) return;
-      const el = sectionRefs.current[iso];
-      if (!el) return;
-      const stickyOffset = tabBarRef.current?.offsetHeight ?? 0;
-      const sectionTop = el.getBoundingClientRect().top;
-      const rootTop = scrollRoot.getBoundingClientRect().top;
-      const target = scrollRoot.scrollTop + sectionTop - rootTop - stickyOffset;
-      scrollRoot.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
-    },
-    [scrollRoot]
-  );
-
   if (populatedDays.length === 0) return <EmptyCalendar />;
 
   return (
-    <div ref={rootRef} className="flex flex-col">
-      <DayTabs ref={tabBarRef} days={populatedDays} activeIso={activeIso} onSelect={scrollToDay} />
-      <div className="flex flex-col">
-        {populatedDays.map((iso) => (
-          <DaySection
-            key={iso}
-            iso={iso}
-            timezone={party.timezone}
-            activities={activitiesByDay[iso] ?? []}
-            registerRef={(el) => {
-              sectionRefs.current[iso] = el;
-            }}
-          />
-        ))}
-      </div>
+    <div className="flex flex-col">
+      {populatedDays.map((iso) => (
+        <DaySection
+          key={iso}
+          iso={iso}
+          timezone={party.timezone}
+          activities={activitiesByDay[iso] ?? []}
+        />
+      ))}
     </div>
   );
 }
@@ -81,103 +51,16 @@ function EmptyCalendar() {
   );
 }
 
-// ---------- Scroll plumbing ----------
-
-function useScrollRoot(elRef: React.RefObject<HTMLElement | null>): HTMLElement | null {
-  const [root, setRoot] = useState<HTMLElement | null>(null);
-  useEffect(() => {
-    const el = elRef.current?.closest('[data-scroll-root]');
-    setRoot(el instanceof HTMLElement ? el : null);
-  }, [elRef]);
-  return root;
-}
-
-function useScrollSpy(root: HTMLElement | null, isoDays: string[]): string | null {
-  const [active, setActive] = useState<string | null>(isoDays[0] ?? null);
-
-  useEffect(() => {
-    if (!root || isoDays.length === 0) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible[0]) {
-          const id = visible[0].target.id.replace(/^day-/, '');
-          setActive(id);
-        }
-      },
-      {
-        root,
-        // Active when the section's top crosses the upper third of the viewport.
-        rootMargin: '-20% 0px -70% 0px',
-        threshold: 0,
-      }
-    );
-
-    for (const iso of isoDays) {
-      const el = root.querySelector(`#${sectionId(iso)}`);
-      if (el) observer.observe(el);
-    }
-    return () => observer.disconnect();
-  }, [root, isoDays]);
-
-  return active;
-}
-
-// ---------- Day tabs (scroll-spy + jump) ----------
-
-const DayTabs = ({
-  ref,
-  days,
-  activeIso,
-  onSelect,
-}: {
-  ref: React.Ref<HTMLDivElement>;
-  days: string[];
-  activeIso: string | null;
-  onSelect: (iso: string) => void;
-}) => (
-  <div
-    ref={ref}
-    className="sticky top-0 z-10 overflow-x-auto no-scrollbar border-b border-border bg-bg/95 backdrop-blur"
-  >
-    <div className="flex gap-1 px-4 py-1.5 w-max">
-      {days.map((iso) => {
-        const d = parseCivilDate(iso);
-        const isActive = iso === activeIso;
-        return (
-          <button
-            key={iso}
-            type="button"
-            onClick={() => onSelect(iso)}
-            className={cn(
-              'flex flex-col items-center justify-center w-9 h-11 rounded-lg leading-none transition shrink-0',
-              isActive ? 'bg-accent/70 text-accent-fg' : 'text-fg-muted hover:bg-bg-elev'
-            )}
-          >
-            <span className="text-[10px] uppercase tracking-wide">{format(d, 'EEE')}</span>
-            <span className="text-sm font-semibold mt-0.5">{format(d, 'd')}</span>
-          </button>
-        );
-      })}
-    </div>
-  </div>
-);
-
 // ---------- Day section ----------
 
 function DaySection({
   iso,
   timezone,
   activities,
-  registerRef,
 }: {
   iso: string;
   timezone: string;
   activities: Activity[];
-  registerRef: (el: HTMLElement | null) => void;
 }) {
   const d = parseCivilDate(iso);
   const groups = useMemo(
@@ -186,11 +69,7 @@ function DaySection({
   );
 
   return (
-    <section
-      id={sectionId(iso)}
-      ref={registerRef}
-      className="flex gap-3 px-4 py-3 border-b border-border last:border-b-0 scroll-mt-14"
-    >
+    <section className="flex gap-3 px-4 py-3 border-b border-border last:border-b-0">
       <div className="w-10 shrink-0 pt-1 text-fg-muted">
         <div className="text-[10px] uppercase tracking-wide">{format(d, 'EEE')}</div>
         <div className="text-xl font-semibold leading-none mt-1 tabular-nums">{format(d, 'd')}</div>

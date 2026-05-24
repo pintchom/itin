@@ -7,6 +7,7 @@ import { env } from './env.ts';
 import { errorHandler } from './middleware/error.ts';
 import { requestLogger } from './middleware/logger.ts';
 import { loadSession } from './middleware/session.ts';
+import { activityRoutes } from './routes/activities.ts';
 import { authRoutes } from './routes/auth.ts';
 import { healthRoutes } from './routes/health.ts';
 import { imageRoutes } from './routes/images.ts';
@@ -47,6 +48,7 @@ export const createApp = () => {
     .basePath('/api')
     .route('/', authRoutes)
     .route('/parties', partyRoutes)
+    .route('/parties', activityRoutes)
     .route('/', inviteRoutes);
 
   return routes;

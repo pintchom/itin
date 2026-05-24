@@ -14,11 +14,12 @@ model User {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  accounts       Account[]
-  sessions       Session[]
-  partyMembers   PartyMember[]
-  createdParties Party[]       @relation("PartyCreator")
-  createdInvites Invite[]      @relation("InviteCreator")
+  accounts          Account[]
+  sessions          Session[]
+  partyMembers      PartyMember[]
+  createdParties    Party[]       @relation("PartyCreator")
+  createdInvites    Invite[]      @relation("InviteCreator")
+  createdActivities Activity[]    @relation("ActivityCreator")
 }
 
 model Account {

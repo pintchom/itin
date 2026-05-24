@@ -2,7 +2,8 @@
   "extends": "@itin/config/tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "lib": ["ES2022"]
+    "lib": ["ES2022"],
+    "allowImportingTsExtensions": true
   },
   "include": ["src/**/*.ts"]
 }

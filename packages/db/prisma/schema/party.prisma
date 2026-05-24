@@ -17,9 +17,10 @@ model Party {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  createdBy User          @relation("PartyCreator", fields: [createdById], references: [id])
-  members   PartyMember[]
-  invites   Invite[]
+  createdBy  User          @relation("PartyCreator", fields: [createdById], references: [id])
+  members    PartyMember[]
+  invites    Invite[]
+  activities Activity[]
 
   @@index([createdById])
 }

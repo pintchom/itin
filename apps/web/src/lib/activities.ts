@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { api, assertOk } from './api';
 
 export type Activity = {
   id: string;
@@ -16,9 +17,11 @@ export function useActivities(partyId: string) {
   return useQuery({
     queryKey: activitiesKey(partyId),
     queryFn: async (): Promise<Activity[]> => {
-      // Activities API arrives in a future plan. Returning [] keeps the
-      // calendar shell rendering against an empty data set.
-      return [];
+      const res = await api.api.parties[':partyId'].activities.$get({
+        param: { partyId },
+      });
+      const data = await assertOk<{ activities: Activity[] }>(res);
+      return data.activities;
     },
     staleTime: 60_000,
   });
