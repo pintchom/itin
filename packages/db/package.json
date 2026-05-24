@@ -13,6 +13,7 @@
     "migrate:deploy": "prisma migrate deploy --schema=./prisma/schema",
     "push": "prisma db push --schema=./prisma/schema",
     "studio": "prisma studio --schema=./prisma/schema",
+    "seed": "bun run src/seed.ts",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {

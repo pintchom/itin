@@ -1,30 +1,23 @@
 import { Link, useParams } from '@tanstack/react-router';
-import { format } from 'date-fns';
 import { ChevronLeft, Pencil, UserPlus } from 'lucide-react';
 import { useState } from 'react';
+import { MembersSheet } from '../components/MembersSheet';
+import { MembersStack } from '../components/MembersStack';
 import { PartyCalendar } from '../components/calendar/PartyCalendar';
 import { Button } from '../components/ui/Button';
+import { ErrorScreen, LoadingScreen } from '../components/ui/StatusScreen';
+import { formatDateRange } from '../lib/dates';
 import { coverImageUrl } from '../lib/images';
 import { buildInviteUrl, useCreateInvite } from '../lib/invites';
 import { useParty } from '../lib/parties';
 import { PartyEditDialog } from './PartyEdit';
-
-const formatRange = (start: string, end: string) => {
-  const s = new Date(`${start}T00:00:00Z`);
-  const e = new Date(`${end}T00:00:00Z`);
-  const sameMonth =
-    s.getUTCMonth() === e.getUTCMonth() && s.getUTCFullYear() === e.getUTCFullYear();
-  const sameYear = s.getUTCFullYear() === e.getUTCFullYear();
-  if (sameMonth) return `${format(s, 'MMM d')}–${format(e, 'd, yyyy')}`;
-  if (sameYear) return `${format(s, 'MMM d')} – ${format(e, 'MMM d, yyyy')}`;
-  return `${format(s, 'MMM d, yyyy')} – ${format(e, 'MMM d, yyyy')}`;
-};
 
 export function PartyDetail() {
   const { partyId } = useParams({ strict: false }) as { partyId: string };
   const party = useParty(partyId);
   const createInvite = useCreateInvite(partyId);
   const [editing, setEditing] = useState(false);
+  const [membersOpen, setMembersOpen] = useState(false);
 
   const onInvite = async () => {
     const { token } = await createInvite.mutateAsync(undefined);
@@ -38,75 +31,80 @@ export function PartyDetail() {
     await navigator.clipboard?.writeText(url).catch(() => {});
   };
 
-  if (party.isLoading) {
-    return <div className="flex-1 flex items-center justify-center text-fg-muted">Loading…</div>;
-  }
+  if (party.isLoading) return <LoadingScreen />;
   if (party.error || !party.data) {
-    return (
-      <div className="px-5 py-10 text-danger">{(party.error as Error)?.message ?? 'Not found'}</div>
-    );
+    return <ErrorScreen message={(party.error as Error)?.message ?? 'Not found'} />;
   }
   const p = party.data;
   const isHost = p.role === 'HOST';
 
   return (
-    <div className="flex-1 flex flex-col">
-      <header className="relative">
-        <div className="relative w-full aspect-[16/9] bg-bg-elev">
-          {p.coverImageKey && (
-            <img
-              src={coverImageUrl(p.coverImageKey, 'lg')}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/55" />
-          <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
+    <div className="flex-1 flex flex-col min-h-0">
+      <header className="shrink-0 relative z-10 w-full aspect-[16/9] bg-bg-elev">
+        {p.coverImageKey && (
+          <img
+            src={coverImageUrl(p.coverImageKey, 'lg')}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/55" />
+        <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            aria-label="Back"
+            className="bg-black/35 text-white backdrop-blur"
+          >
+            <Link to="/parties">
+              <ChevronLeft className="h-5 w-5" />
+            </Link>
+          </Button>
+          <div className="flex items-center gap-2">
             <Button
-              asChild
               variant="ghost"
               size="icon"
-              aria-label="Back"
+              aria-label="Invite"
               className="bg-black/35 text-white backdrop-blur"
+              onClick={onInvite}
+              disabled={createInvite.isPending}
             >
-              <Link to="/parties">
-                <ChevronLeft className="h-5 w-5" />
-              </Link>
+              <UserPlus className="h-5 w-5" />
             </Button>
-            <div className="flex items-center gap-2">
+            {isHost && (
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="Invite"
+                aria-label="Edit"
                 className="bg-black/35 text-white backdrop-blur"
-                onClick={onInvite}
-                disabled={createInvite.isPending}
+                onClick={() => setEditing(true)}
               >
-                <UserPlus className="h-5 w-5" />
+                <Pencil className="h-5 w-5" />
               </Button>
-              {isHost && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Edit"
-                  className="bg-black/35 text-white backdrop-blur"
-                  onClick={() => setEditing(true)}
-                >
-                  <Pencil className="h-5 w-5" />
-                </Button>
-              )}
-            </div>
-          </div>
-          <div className="absolute left-5 right-5 bottom-3 text-white">
-            <div className="text-2xl font-semibold drop-shadow">{p.title}</div>
-            <div className="text-sm opacity-90">{formatRange(p.startDate, p.endDate)}</div>
+            )}
           </div>
         </div>
+        <div className="absolute left-5 right-5 bottom-3 flex items-end justify-between gap-3 text-white">
+          <div className="min-w-0">
+            <div className="text-2xl font-semibold drop-shadow truncate">{p.title}</div>
+            <div className="text-sm opacity-90">{formatDateRange(p.startDate, p.endDate)}</div>
+          </div>
+          <MembersStack members={p.members} onClick={() => setMembersOpen(true)} />
+        </div>
+
+        <div
+          aria-hidden
+          className="absolute left-0 right-0 top-full h-6 pointer-events-none bg-gradient-to-b from-black/55 via-black/20 to-transparent"
+        />
       </header>
 
-      <PartyCalendar party={p} />
+      <div className="flex-1 overflow-y-auto overscroll-contain min-h-0">
+        <PartyCalendar party={p} />
+      </div>
 
       {editing && <PartyEditDialog party={p} onClose={() => setEditing(false)} />}
+      <MembersSheet party={p} open={membersOpen} onOpenChange={setMembersOpen} />
     </div>
   );
 }

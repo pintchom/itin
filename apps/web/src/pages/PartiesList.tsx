@@ -1,27 +1,17 @@
 import { Link } from '@tanstack/react-router';
-import { format } from 'date-fns';
 import { CalendarRange, Plus } from 'lucide-react';
 import { AppHeader } from '../components/AppHeader';
 import { Button } from '../components/ui/Button';
+import { ErrorScreen, LoadingScreen } from '../components/ui/StatusScreen';
+import { formatDateRange } from '../lib/dates';
 import { coverImageUrl } from '../lib/images';
 import { type PartySummary, useParties } from '../lib/parties';
-
-const formatRange = (start: string, end: string) => {
-  const s = new Date(`${start}T00:00:00Z`);
-  const e = new Date(`${end}T00:00:00Z`);
-  const sameMonth =
-    s.getUTCMonth() === e.getUTCMonth() && s.getUTCFullYear() === e.getUTCFullYear();
-  const sameYear = s.getUTCFullYear() === e.getUTCFullYear();
-  if (sameMonth) return `${format(s, 'MMM d')}–${format(e, 'd, yyyy')}`;
-  if (sameYear) return `${format(s, 'MMM d')} – ${format(e, 'MMM d, yyyy')}`;
-  return `${format(s, 'MMM d, yyyy')} – ${format(e, 'MMM d, yyyy')}`;
-};
 
 export function PartiesList() {
   const parties = useParties();
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col overflow-y-auto">
       <AppHeader title="Your trips">
         <Button asChild size="icon" aria-label="New party">
           <Link to="/parties/new">
@@ -31,13 +21,13 @@ export function PartiesList() {
       </AppHeader>
 
       {parties.isLoading ? (
-        <div className="px-5 py-10 text-fg-muted">Loading…</div>
+        <LoadingScreen />
       ) : parties.error ? (
-        <div className="px-5 py-10 text-danger">{(parties.error as Error).message}</div>
+        <ErrorScreen message={(parties.error as Error).message} />
       ) : parties.data && parties.data.length > 0 ? (
         <ul className="px-5 space-y-3 pb-12">
           {parties.data.map((p) => (
-            <PartyCard key={p.id} party={p} formatted={formatRange(p.startDate, p.endDate)} />
+            <PartyCard key={p.id} party={p} formatted={formatDateRange(p.startDate, p.endDate)} />
           ))}
         </ul>
       ) : (
