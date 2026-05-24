@@ -146,19 +146,16 @@ function ActivityCard({
       onClick={onToggle}
       aria-expanded={isExpanded}
       className={cn(
-        'group relative flex-1 min-w-[60%] rounded-xl bg-bg-elev border border-border px-3 py-2.5 text-left flex flex-col overflow-hidden transition active:scale-[0.995]',
+        'group relative flex-1 min-w-[60%] rounded-xl bg-bg-elev px-3 py-2.5 text-left flex flex-col overflow-hidden transition active:scale-[0.995]',
+        'border-[1.5px] shadow-md shadow-black/40',
+        !event.color && 'border-border',
         isExpanded && 'ring-2 ring-accent/40'
       )}
-      style={{ minHeight: isExpanded ? undefined : cardHeight(duration) }}
+      style={{
+        minHeight: isExpanded ? undefined : cardHeight(duration),
+        borderColor: event.color ?? undefined,
+      }}
     >
-      {event.color && (
-        <span
-          aria-hidden
-          className="absolute left-0 top-0 bottom-0 w-1"
-          style={{ backgroundColor: event.color }}
-        />
-      )}
-
       <div className={cn('font-medium text-fg', !isExpanded && 'truncate')}>{event.title}</div>
 
       <div className="text-[11px] text-fg-muted tabular-nums mt-0.5">
