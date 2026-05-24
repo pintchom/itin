@@ -65,7 +65,7 @@ Open http://localhost:5173. The sign-in screen takes a first/last name and uses 
 
 We use Better Auth for sessions + OAuth. Two paths:
 
-1. **Dev login** (`POST /api/auth/dev-login`) — accepts `firstName`/`lastName`, signs you in. Gated by `DEV_AUTH_ENABLED`. Use locally; disable in production.
+1. **Dev login** (`POST /api/dev-login`) — accepts `firstName`/`lastName`, signs you in. Gated by `DEV_AUTH_ENABLED`. Use locally; disable in production.
 2. **Google** — provider is enabled when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set. Create credentials at https://console.cloud.google.com/apis/credentials with the redirect URI `<API_ORIGIN>/api/auth/callback/google`.
 
 See [`apps/api/README.md`](apps/api/README.md) for the full Google setup walkthrough.

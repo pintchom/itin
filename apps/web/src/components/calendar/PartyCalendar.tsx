@@ -1,19 +1,10 @@
+import { enumerateDates } from '@itin/shared/time';
 import { format } from 'date-fns';
 import { useMemo, useState } from 'react';
 import { useActivities } from '../../lib/activities';
 import { cn } from '../../lib/cn';
 import type { PartyDetail } from '../../lib/parties';
 import { DayView } from './DayView';
-
-const enumerateDates = (startIso: string, endIso: string): string[] => {
-  const out: string[] = [];
-  const start = new Date(`${startIso}T00:00:00Z`).getTime();
-  const end = new Date(`${endIso}T00:00:00Z`).getTime();
-  for (let t = start; t <= end; t += 24 * 60 * 60 * 1000) {
-    out.push(new Date(t).toISOString().slice(0, 10));
-  }
-  return out;
-};
 
 export function PartyCalendar({ party }: { party: PartyDetail }) {
   const days = useMemo(() => enumerateDates(party.startDate, party.endDate), [party]);

@@ -1,3 +1,4 @@
+import { dayKeyInZone, minutesInZone } from '@itin/shared/time';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Activity } from '../../lib/activities';
 import { cn } from '../../lib/cn';
@@ -12,42 +13,19 @@ type Props = {
   activities: Activity[];
 };
 
-// Parses an ISO timestamp into the minute-of-day in the given IANA timezone.
-const minutesInZone = (iso: string, timezone: string): number => {
-  const d = new Date(iso);
-  const fmt = new Intl.DateTimeFormat('en-US', {
-    timeZone: timezone,
-    hour: 'numeric',
-    minute: 'numeric',
-    hour12: false,
-  });
-  const parts = fmt.formatToParts(d);
-  const h = Number(parts.find((p) => p.type === 'hour')?.value ?? '0');
-  const m = Number(parts.find((p) => p.type === 'minute')?.value ?? '0');
-  return h * 60 + m;
-};
-
-const dayKey = (iso: string, timezone: string): string => {
-  const d = new Date(iso);
-  const fmt = new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-  return fmt.format(d);
-};
-
 export function DayView({ date, timezone, activities }: Props) {
   const [hourHeight, setHourHeight] = useState(64);
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   const intervals = useMemo<(Interval & { source: Activity })[]>(() => {
     return activities
-      .filter((a) => dayKey(a.startsAt, timezone) === date || dayKey(a.endsAt, timezone) === date)
+      .filter(
+        (a) =>
+          dayKeyInZone(a.startsAt, timezone) === date || dayKeyInZone(a.endsAt, timezone) === date
+      )
       .map((a) => {
-        const startsToday = dayKey(a.startsAt, timezone) === date;
-        const endsToday = dayKey(a.endsAt, timezone) === date;
+        const startsToday = dayKeyInZone(a.startsAt, timezone) === date;
+        const endsToday = dayKeyInZone(a.endsAt, timezone) === date;
         return {
           id: a.id,
           startMin: startsToday ? minutesInZone(a.startsAt, timezone) : 0,
@@ -62,17 +40,16 @@ export function DayView({ date, timezone, activities }: Props) {
   // Auto-scroll to the current time on first mount when viewing today.
   useEffect(() => {
     if (!scrollerRef.current) return;
-    const todayKey = dayKey(new Date().toISOString(), timezone);
-    if (todayKey === date) {
-      const now = minutesInZone(new Date().toISOString(), timezone);
-      const offset = (now / 60) * hourHeight - 200;
+    const now = new Date();
+    if (dayKeyInZone(now, timezone) === date) {
+      const offset = (minutesInZone(now, timezone) / 60) * hourHeight - 200;
       scrollerRef.current.scrollTo({ top: Math.max(0, offset) });
     }
   }, [date, timezone, hourHeight]);
 
   const totalHeight = 24 * hourHeight;
-  const todayKey = dayKey(new Date().toISOString(), timezone);
-  const nowMin = todayKey === date ? minutesInZone(new Date().toISOString(), timezone) : null;
+  const now = new Date();
+  const nowMin = dayKeyInZone(now, timezone) === date ? minutesInZone(now, timezone) : null;
 
   return (
     <div className="flex flex-col flex-1">

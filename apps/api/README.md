@@ -7,9 +7,9 @@ Hono on Bun. Better Auth + Prisma + Postgres.
 | Method | Path                              | Auth        | Description                       |
 | ------ | --------------------------------- | ----------- | --------------------------------- |
 | GET    | `/health`                         | none        | Liveness check                    |
-| ANY    | `/api/auth/**`                    | varies      | Better Auth handler               |
-| POST   | `/api/auth/dev-login`             | dev-only    | Sign in by first + last name      |
-| GET    | `/api/auth/me`                    | optional    | Current session user (or `null`)  |
+| ANY    | `/api/auth/**`                    | varies      | Better Auth handler (owns this namespace) |
+| POST   | `/api/dev-login`                  | dev-only    | Sign in by first + last name      |
+| GET    | `/api/me`                         | optional    | Current session user (or `null`)  |
 | GET    | `/api/parties`                    | required    | Parties the viewer is a member of |
 | POST   | `/api/parties`                    | required    | Create a party                    |
 | GET    | `/api/parties/:id`                | member only | Party detail with members         |

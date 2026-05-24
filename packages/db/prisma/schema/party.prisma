@@ -1,0 +1,53 @@
+// Domain tables: trips, memberships, and shareable invites.
+// Activity / RSVP tables land in a follow-up plan.
+
+enum PartyRole {
+  HOST
+  MEMBER
+}
+
+model Party {
+  id            String   @id @default(cuid())
+  title         String
+  startDate     DateTime @db.Date
+  endDate       DateTime @db.Date
+  coverImageKey String?
+  timezone      String   @default("UTC")
+  createdById   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  createdBy User          @relation("PartyCreator", fields: [createdById], references: [id])
+  members   PartyMember[]
+  invites   Invite[]
+
+  @@index([createdById])
+}
+
+model PartyMember {
+  id       String    @id @default(cuid())
+  partyId  String
+  userId   String
+  role     PartyRole @default(MEMBER)
+  joinedAt DateTime  @default(now())
+
+  party Party @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([partyId, userId])
+  @@index([userId])
+}
+
+model Invite {
+  id          String    @id @default(cuid())
+  partyId     String
+  token       String    @unique
+  createdById String
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  party     Party @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  createdBy User  @relation("InviteCreator", fields: [createdById], references: [id])
+
+  @@index([partyId])
+}

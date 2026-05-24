@@ -31,6 +31,17 @@ bun db:studio       # open Prisma Studio
 
 In production / Railway, the api service runs `prisma migrate deploy` on boot via its start command.
 
+## Schema layout
+
+The schema is split across files in `prisma/schema/` (enabled by the
+`prismaSchemaFolder` preview feature):
+
+- `prisma/schema/main.prisma` — generator + datasource
+- `prisma/schema/auth.prisma` — Better Auth managed tables
+- `prisma/schema/party.prisma` — domain tables
+
+All Prisma CLI commands point at the folder via `--schema=./prisma/schema`.
+
 ## Schema overview
 
 | Table         | Purpose                                                       |

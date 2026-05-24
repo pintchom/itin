@@ -23,29 +23,28 @@ export const authRoutes = new Hono<Env>()
   .post('/dev-login', zValidator('json', devLoginSchema), async (c) => {
     if (!env.DEV_AUTH_ENABLED) throw Forbidden('Dev auth disabled');
 
+    const prisma = c.get('prisma');
     const { firstName, lastName } = c.req.valid('json');
 
     const email = devEmailFor(firstName, lastName);
     const password = await devPasswordFor(email);
     const name = `${firstName} ${lastName}`;
 
-    try {
-      await forwardSetCookie(c, () =>
-        auth.api.signInEmail({
-          body: { email, password },
-          headers: c.req.raw.headers,
-          asResponse: true,
-        })
-      );
-    } catch {
-      await forwardSetCookie(c, () =>
-        auth.api.signUpEmail({
-          body: { email, password, name, firstName, lastName },
-          headers: c.req.raw.headers,
-          asResponse: true,
-        })
-      );
-    }
+    const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+
+    await forwardSetCookie(c, () =>
+      existing
+        ? auth.api.signInEmail({
+            body: { email, password },
+            headers: c.req.raw.headers,
+            asResponse: true,
+          })
+        : auth.api.signUpEmail({
+            body: { email, password, name, firstName, lastName },
+            headers: c.req.raw.headers,
+            asResponse: true,
+          })
+    );
 
     return c.json({ ok: true });
   })

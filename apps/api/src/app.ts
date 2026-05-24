@@ -45,7 +45,7 @@ export const createApp = () => {
     .route('/health', healthRoutes)
     .route('/images', imageRoutes)
     .basePath('/api')
-    .route('/auth', authRoutes)
+    .route('/', authRoutes)
     .route('/parties', partyRoutes)
     .route('/', inviteRoutes);
 

@@ -11,10 +11,10 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
-    "db:generate": "bun --filter @itin/db run generate",
-    "db:migrate": "bun --filter @itin/db run migrate",
-    "db:push": "bun --filter @itin/db run push",
-    "db:studio": "bun --filter @itin/db run studio"
+    "db:generate": "cd packages/db && bun run generate",
+    "db:migrate": "cd packages/db && bun run migrate",
+    "db:push": "cd packages/db && bun run push",
+    "db:studio": "cd packages/db && bun run studio"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

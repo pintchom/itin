@@ -28,3 +28,29 @@ export function enumerateDates(startIso: string, endIso: string): string[] {
   }
   return out;
 }
+
+// Minute-of-day (0..1439) for an instant rendered in `timezone`.
+export function minutesInZone(instant: Date | string, timezone: string): number {
+  const d = instant instanceof Date ? instant : new Date(instant);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+  }).formatToParts(d);
+  const h = Number(parts.find((p) => p.type === 'hour')?.value ?? '0');
+  const m = Number(parts.find((p) => p.type === 'minute')?.value ?? '0');
+  return h * 60 + m;
+}
+
+// Local calendar day (YYYY-MM-DD) for an instant rendered in `timezone`.
+export function dayKeyInZone(instant: Date | string, timezone: string): string {
+  const d = instant instanceof Date ? instant : new Date(instant);
+  // en-CA formats as YYYY-MM-DD, which is the canonical ISO date format.
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d);
+}

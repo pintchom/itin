@@ -3,10 +3,10 @@ import { hc } from 'hono/client';
 
 const baseUrl = import.meta.env.VITE_API_ORIGIN ?? '';
 
-export const api = hc<AppType>(baseUrl, {
-  fetch: ((input: RequestInfo | URL, init?: RequestInit) =>
-    fetch(input, { ...init, credentials: 'include' })) as typeof fetch,
-});
+const credentialedFetch: typeof fetch = (input, init) =>
+  fetch(input, { ...init, credentials: 'include' });
+
+export const api = hc<AppType>(baseUrl, { fetch: credentialedFetch });
 
 export class ApiError extends Error {
   readonly status: number;

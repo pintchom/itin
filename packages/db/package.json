@@ -7,11 +7,11 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "generate": "prisma generate",
-    "migrate": "prisma migrate dev",
-    "migrate:deploy": "prisma migrate deploy",
-    "push": "prisma db push",
-    "studio": "prisma studio",
+    "generate": "prisma generate --schema=./prisma/schema",
+    "migrate": "prisma migrate dev --schema=./prisma/schema",
+    "migrate:deploy": "prisma migrate deploy --schema=./prisma/schema",
+    "push": "prisma db push --schema=./prisma/schema",
+    "studio": "prisma studio --schema=./prisma/schema",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
