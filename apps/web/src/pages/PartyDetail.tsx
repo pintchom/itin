@@ -1,6 +1,8 @@
 import { Link, useParams } from '@tanstack/react-router';
 import { ChevronLeft, Pencil, UserPlus } from 'lucide-react';
 import { useState } from 'react';
+import { MembersSheet } from '../components/MembersSheet';
+import { MembersStack } from '../components/MembersStack';
 import { PartyCalendar } from '../components/calendar/PartyCalendar';
 import { Button } from '../components/ui/Button';
 import { ErrorScreen, LoadingScreen } from '../components/ui/StatusScreen';
@@ -15,6 +17,7 @@ export function PartyDetail() {
   const party = useParty(partyId);
   const createInvite = useCreateInvite(partyId);
   const [editing, setEditing] = useState(false);
+  const [membersOpen, setMembersOpen] = useState(false);
 
   const onInvite = async () => {
     const { token } = await createInvite.mutateAsync(undefined);
@@ -82,9 +85,12 @@ export function PartyDetail() {
             )}
           </div>
         </div>
-        <div className="absolute left-5 right-5 bottom-3 text-white">
-          <div className="text-2xl font-semibold drop-shadow">{p.title}</div>
-          <div className="text-sm opacity-90">{formatDateRange(p.startDate, p.endDate)}</div>
+        <div className="absolute left-5 right-5 bottom-3 flex items-end justify-between gap-3 text-white">
+          <div className="min-w-0">
+            <div className="text-2xl font-semibold drop-shadow truncate">{p.title}</div>
+            <div className="text-sm opacity-90">{formatDateRange(p.startDate, p.endDate)}</div>
+          </div>
+          <MembersStack members={p.members} onClick={() => setMembersOpen(true)} />
         </div>
       </header>
 
@@ -93,6 +99,7 @@ export function PartyDetail() {
       </div>
 
       {editing && <PartyEditDialog party={p} onClose={() => setEditing(false)} />}
+      <MembersSheet party={p} open={membersOpen} onOpenChange={setMembersOpen} />
     </div>
   );
 }
