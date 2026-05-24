@@ -8,6 +8,7 @@
     "./schemas/invite": "./src/schemas/invite.ts",
     "./schemas/user": "./src/schemas/user.ts",
     "./schemas/rsvp": "./src/schemas/rsvp.ts",
+    "./schemas/activity": "./src/schemas/activity.ts",
     "./time": "./src/time.ts"
   },
   "scripts": {

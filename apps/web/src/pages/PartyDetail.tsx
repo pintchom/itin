@@ -1,5 +1,5 @@
 import { Link, useParams } from '@tanstack/react-router';
-import { ChevronLeft, Pencil, UserPlus } from 'lucide-react';
+import { ChevronLeft, Pencil, Plus, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { MembersSheet } from '../components/MembersSheet';
 import { MembersStack } from '../components/MembersStack';
@@ -10,6 +10,7 @@ import { formatDateRange } from '../lib/dates';
 import { coverImageUrl } from '../lib/images';
 import { buildInviteUrl, useCreateInvite } from '../lib/invites';
 import { useParty } from '../lib/parties';
+import { CreateActivitySheet } from './CreateActivitySheet';
 import { PartyEditDialog } from './PartyEdit';
 
 export function PartyDetail() {
@@ -18,6 +19,7 @@ export function PartyDetail() {
   const createInvite = useCreateInvite(partyId);
   const [editing, setEditing] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const onInvite = async () => {
     const { token } = await createInvite.mutateAsync(undefined);
@@ -103,8 +105,19 @@ export function PartyDetail() {
         <PartyCalendar party={p} />
       </div>
 
+      <button
+        type="button"
+        onClick={() => setCreating(true)}
+        aria-label="Add activity"
+        className="fixed bottom-4 right-4 z-20 h-14 w-14 rounded-full bg-accent text-accent-fg shadow-lg shadow-black/40 flex items-center justify-center transition active:scale-95"
+        style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <Plus className="h-7 w-7" strokeWidth={2.5} />
+      </button>
+
       {editing && <PartyEditDialog party={p} onClose={() => setEditing(false)} />}
       <MembersSheet party={p} open={membersOpen} onOpenChange={setMembersOpen} />
+      <CreateActivitySheet party={p} open={creating} onOpenChange={setCreating} />
     </div>
   );
 }

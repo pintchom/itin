@@ -54,6 +54,33 @@ export function minutesInZone(instant: Date | string, timezone: string): number 
   return h * 60 + m;
 }
 
+// Combines a YYYY-MM-DD civil date + HH:MM wall-time into a UTC `Date`,
+// interpreting the wall-time in the given IANA timezone. Inverse of pairing
+// `dayKeyInZone` + `minutesInZone`.
+export function combineDateTimeInZone(dateIso: string, hhmm: string, timezone: string): Date {
+  const [y, m, d] = dateIso.split('-').map((n) => Number.parseInt(n, 10));
+  const [h, min] = hhmm.split(':').map((n) => Number.parseInt(n, 10));
+  if (!y || !m || !d || Number.isNaN(h) || Number.isNaN(min)) {
+    throw new Error(`Invalid date/time: ${dateIso} ${hhmm}`);
+  }
+  // First guess: treat the wall-time as UTC, then correct by the target tz's
+  // offset at that approximate moment.
+  const utcGuess = new Date(Date.UTC(y, m - 1, d, h, min));
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+    timeZoneName: 'shortOffset',
+  }).formatToParts(utcGuess);
+  const offsetPart = parts.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT+0';
+  const match = offsetPart.match(/GMT([+-]\d+)(?::(\d+))?/);
+  const offsetHours = match ? Number(match[1]) : 0;
+  const offsetMinutes = match?.[2] ? Number(match[2]) : 0;
+  const offsetMs = (offsetHours * 60 + Math.sign(offsetHours || 1) * offsetMinutes) * 60_000;
+  return new Date(utcGuess.getTime() - offsetMs);
+}
+
 // Local calendar day (YYYY-MM-DD) for an instant rendered in `timezone`.
 export function dayKeyInZone(instant: Date | string, timezone: string): string {
   const d = instant instanceof Date ? instant : new Date(instant);

@@ -1,8 +1,9 @@
 import { zValidator } from '@hono/zod-validator';
+import { createActivitySchema } from '@itin/shared/schemas/activity';
 import { rsvpSchema } from '@itin/shared/schemas/rsvp';
 import { Hono } from 'hono';
 import type { Env } from '../context.ts';
-import { Forbidden, NotFound } from '../errors.ts';
+import { BadRequest, Forbidden, NotFound } from '../errors.ts';
 import { requireAuth } from '../middleware/session.ts';
 
 export const activityRoutes = new Hono<Env>()
@@ -52,6 +53,84 @@ export const activityRoutes = new Hono<Env>()
         })),
       })),
     });
+  })
+
+  .post('/:partyId/activities', zValidator('json', createActivitySchema), async (c) => {
+    const prisma = c.get('prisma');
+    const user = c.get('user');
+    if (!user) throw Forbidden();
+    const partyId = c.req.param('partyId');
+
+    const member = await prisma.partyMember.findUnique({
+      where: { partyId_userId: { partyId, userId: user.id } },
+      select: { id: true },
+    });
+    if (!member) throw NotFound('Party not found');
+
+    const input = c.req.valid('json');
+
+    // All pre-assigned user ids must be members of the party.
+    if (input.participantUserIds.length > 0) {
+      const memberCount = await prisma.partyMember.count({
+        where: { partyId, userId: { in: input.participantUserIds } },
+      });
+      if (memberCount !== input.participantUserIds.length) {
+        throw BadRequest('Some participants are not members of this party');
+      }
+    }
+
+    const allParticipantIds = Array.from(new Set([...input.participantUserIds, user.id]));
+    const now = new Date();
+
+    const created = await prisma.activity.create({
+      data: {
+        partyId,
+        title: input.title,
+        startsAt: new Date(input.startsAt),
+        endsAt: new Date(input.endsAt),
+        location: input.location ?? null,
+        color: input.color ?? null,
+        createdById: user.id,
+        participants: {
+          create: allParticipantIds.map((userId) => ({
+            userId,
+            status: 'GOING',
+            respondedAt: now,
+          })),
+        },
+      },
+      include: {
+        createdBy: { select: { id: true, firstName: true, lastName: true } },
+        participants: {
+          select: {
+            id: true,
+            status: true,
+            user: { select: { id: true, firstName: true, lastName: true } },
+          },
+        },
+      },
+    });
+
+    return c.json(
+      {
+        activity: {
+          id: created.id,
+          partyId: created.partyId,
+          title: created.title,
+          startsAt: created.startsAt.toISOString(),
+          endsAt: created.endsAt.toISOString(),
+          location: created.location,
+          color: created.color,
+          createdBy: created.createdBy,
+          participants: created.participants.map((p) => ({
+            id: p.id,
+            status: p.status,
+            user: p.user,
+          })),
+        },
+      },
+      201
+    );
   });
 
 export const rsvpRoutes = new Hono<Env>()

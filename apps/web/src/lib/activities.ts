@@ -1,3 +1,4 @@
+import type { CreateActivityInput } from '@itin/shared/schemas/activity';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, assertOk } from './api';
 
@@ -74,6 +75,21 @@ export function useClearRsvp(partyId: string) {
         param: { activityId },
       });
       await assertOk<{ ok: true }>(res);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: activitiesKey(partyId) }),
+  });
+}
+
+export function useCreateActivity(partyId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreateActivityInput) => {
+      const res = await api.api.parties[':partyId'].activities.$post({
+        param: { partyId },
+        json: input,
+      });
+      const data = await assertOk<{ activity: Activity }>(res);
+      return data.activity;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: activitiesKey(partyId) }),
   });
