@@ -16,7 +16,12 @@ export type PartyDetail = PartySummary & {
   members: Array<{
     id: string;
     role: PartyRole;
-    user: { id: string; firstName: string | null; lastName: string | null };
+    user: {
+      id: string;
+      firstName: string | null;
+      lastName: string | null;
+      profileImageKey: string | null;
+    };
   }>;
 };
 
@@ -43,7 +48,7 @@ export function toPartyDetail(
   party: Party & {
     members: Array<
       PartyMember & {
-        user: Pick<User, 'id' | 'firstName' | 'lastName'>;
+        user: Pick<User, 'id' | 'firstName' | 'lastName' | 'profileImageKey'>;
       }
     >;
   },
@@ -59,6 +64,7 @@ export function toPartyDetail(
         id: m.user.id,
         firstName: m.user.firstName,
         lastName: m.user.lastName,
+        profileImageKey: m.user.profileImageKey,
       },
     })),
   };

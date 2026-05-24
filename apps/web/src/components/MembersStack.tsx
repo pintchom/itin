@@ -30,6 +30,7 @@ export function MembersStack({
           userId={m.user.id}
           firstName={m.user.firstName}
           lastName={m.user.lastName}
+          profileImageKey={m.user.profileImageKey}
           size="sm"
           ringClassName="ring-2 ring-black/55"
         />

@@ -346,8 +346,7 @@ export function SignIn() {
                   pending ||
                   !phone.trim() ||
                   password.length < (isSignUp ? 8 : 1) ||
-                  (isSignUp &&
-                    (!firstName.trim() || !lastName.trim() || (otpSent && !otp.trim())))
+                  (isSignUp && (!firstName.trim() || !lastName.trim() || (otpSent && !otp.trim())))
                 }
               >
                 {pending

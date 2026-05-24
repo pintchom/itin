@@ -11,6 +11,7 @@ export type ActivityParticipant = {
     id: string;
     firstName: string | null;
     lastName: string | null;
+    profileImageKey: string | null;
   };
 };
 
@@ -26,6 +27,7 @@ export type Activity = {
     id: string;
     firstName: string | null;
     lastName: string | null;
+    profileImageKey: string | null;
   };
   participants: ActivityParticipant[];
 };

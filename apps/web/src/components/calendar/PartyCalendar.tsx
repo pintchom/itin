@@ -394,6 +394,7 @@ function GoingStack({ participants }: { participants: ActivityParticipant[] }) {
           userId={p.user.id}
           firstName={p.user.firstName}
           lastName={p.user.lastName}
+          profileImageKey={p.user.profileImageKey}
           size="2xs"
           ringClassName="ring-1 ring-bg-elev"
         />

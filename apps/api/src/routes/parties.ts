@@ -46,7 +46,11 @@ export const partyRoutes = new Hono<Env>()
         },
       },
       include: {
-        members: { include: { user: { select: { id: true, firstName: true, lastName: true } } } },
+        members: {
+          include: {
+            user: { select: { id: true, firstName: true, lastName: true, profileImageKey: true } },
+          },
+        },
       },
     });
     return c.json({ party: toPartyDetail(party, 'HOST') }, 201);
@@ -63,7 +67,9 @@ export const partyRoutes = new Hono<Env>()
       include: {
         members: {
           orderBy: { joinedAt: 'asc' },
-          include: { user: { select: { id: true, firstName: true, lastName: true } } },
+          include: {
+            user: { select: { id: true, firstName: true, lastName: true, profileImageKey: true } },
+          },
         },
       },
     });
@@ -98,7 +104,11 @@ export const partyRoutes = new Hono<Env>()
         ...(input.timezone !== undefined && { timezone: input.timezone }),
       },
       include: {
-        members: { include: { user: { select: { id: true, firstName: true, lastName: true } } } },
+        members: {
+          include: {
+            user: { select: { id: true, firstName: true, lastName: true, profileImageKey: true } },
+          },
+        },
       },
     });
     return c.json({ party: toPartyDetail(updated, member.role) });

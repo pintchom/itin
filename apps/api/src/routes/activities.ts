@@ -25,12 +25,12 @@ export const activityRoutes = new Hono<Env>()
       where: { partyId },
       orderBy: { startsAt: 'asc' },
       include: {
-        createdBy: { select: { id: true, firstName: true, lastName: true } },
+        createdBy: { select: { id: true, firstName: true, lastName: true, profileImageKey: true } },
         participants: {
           select: {
             id: true,
             status: true,
-            user: { select: { id: true, firstName: true, lastName: true } },
+            user: { select: { id: true, firstName: true, lastName: true, profileImageKey: true } },
           },
         },
       },
@@ -100,12 +100,12 @@ export const activityRoutes = new Hono<Env>()
         },
       },
       include: {
-        createdBy: { select: { id: true, firstName: true, lastName: true } },
+        createdBy: { select: { id: true, firstName: true, lastName: true, profileImageKey: true } },
         participants: {
           select: {
             id: true,
             status: true,
-            user: { select: { id: true, firstName: true, lastName: true } },
+            user: { select: { id: true, firstName: true, lastName: true, profileImageKey: true } },
           },
         },
       },
@@ -163,7 +163,7 @@ export const rsvpRoutes = new Hono<Env>()
       select: {
         id: true,
         status: true,
-        user: { select: { id: true, firstName: true, lastName: true } },
+        user: { select: { id: true, firstName: true, lastName: true, profileImageKey: true } },
       },
     });
 

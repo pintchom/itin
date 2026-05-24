@@ -242,6 +242,7 @@ export function CreateActivitySheet({
                       userId={session.data.id}
                       firstName={session.data.firstName}
                       lastName={session.data.lastName}
+                      profileImageKey={session.data.profileImageKey}
                       size="sm"
                     />
                     <div className="flex-1 min-w-0">
@@ -268,6 +269,7 @@ export function CreateActivitySheet({
                           userId={m.user.id}
                           firstName={m.user.firstName}
                           lastName={m.user.lastName}
+                          profileImageKey={m.user.profileImageKey}
                           size="sm"
                         />
                         <div className="flex-1 min-w-0 text-fg truncate">{name}</div>
