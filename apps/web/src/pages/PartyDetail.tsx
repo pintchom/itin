@@ -36,57 +36,55 @@ export function PartyDetail() {
   const isHost = p.role === 'HOST';
 
   return (
-    <div className="flex-1 flex flex-col">
-      <header className="relative">
-        <div className="relative w-full aspect-[16/9] bg-bg-elev">
-          {p.coverImageKey && (
-            <img
-              src={coverImageUrl(p.coverImageKey, 'lg')}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/55" />
-          <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
+    <div className="flex-1 overflow-y-auto overscroll-contain" data-scroll-root>
+      <header className="relative w-full aspect-[16/9] bg-bg-elev">
+        {p.coverImageKey && (
+          <img
+            src={coverImageUrl(p.coverImageKey, 'lg')}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/55" />
+        <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            aria-label="Back"
+            className="bg-black/35 text-white backdrop-blur"
+          >
+            <Link to="/parties">
+              <ChevronLeft className="h-5 w-5" />
+            </Link>
+          </Button>
+          <div className="flex items-center gap-2">
             <Button
-              asChild
               variant="ghost"
               size="icon"
-              aria-label="Back"
+              aria-label="Invite"
               className="bg-black/35 text-white backdrop-blur"
+              onClick={onInvite}
+              disabled={createInvite.isPending}
             >
-              <Link to="/parties">
-                <ChevronLeft className="h-5 w-5" />
-              </Link>
+              <UserPlus className="h-5 w-5" />
             </Button>
-            <div className="flex items-center gap-2">
+            {isHost && (
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="Invite"
+                aria-label="Edit"
                 className="bg-black/35 text-white backdrop-blur"
-                onClick={onInvite}
-                disabled={createInvite.isPending}
+                onClick={() => setEditing(true)}
               >
-                <UserPlus className="h-5 w-5" />
+                <Pencil className="h-5 w-5" />
               </Button>
-              {isHost && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Edit"
-                  className="bg-black/35 text-white backdrop-blur"
-                  onClick={() => setEditing(true)}
-                >
-                  <Pencil className="h-5 w-5" />
-                </Button>
-              )}
-            </div>
+            )}
           </div>
-          <div className="absolute left-5 right-5 bottom-3 text-white">
-            <div className="text-2xl font-semibold drop-shadow">{p.title}</div>
-            <div className="text-sm opacity-90">{formatDateRange(p.startDate, p.endDate)}</div>
-          </div>
+        </div>
+        <div className="absolute left-5 right-5 bottom-3 text-white">
+          <div className="text-2xl font-semibold drop-shadow">{p.title}</div>
+          <div className="text-sm opacity-90">{formatDateRange(p.startDate, p.endDate)}</div>
         </div>
       </header>
 

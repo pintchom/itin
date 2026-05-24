@@ -48,4 +48,13 @@
   .pr-safe {
     padding-right: env(safe-area-inset-right);
   }
+
+  /* Hide native scrollbars on a scroll container. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }

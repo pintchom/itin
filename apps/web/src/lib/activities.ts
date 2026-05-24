@@ -10,12 +10,11 @@ export type Activity = {
   location: string | null;
 };
 
-const activitiesKey = (partyId: string, dateIso: string) =>
-  ['activities', partyId, dateIso] as const;
+const activitiesKey = (partyId: string) => ['activities', partyId] as const;
 
-export function useActivities(partyId: string, dateIso: string) {
+export function useActivities(partyId: string) {
   return useQuery({
-    queryKey: activitiesKey(partyId, dateIso),
+    queryKey: activitiesKey(partyId),
     queryFn: async (): Promise<Activity[]> => {
       // Activities API arrives in a future plan. Returning [] keeps the
       // calendar shell rendering against an empty data set.

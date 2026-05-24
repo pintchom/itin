@@ -12,7 +12,10 @@ export function PartiesList() {
   return (
     <div className="flex-1 flex flex-col">
       <header className="flex items-center justify-between px-5 pt-2 pb-3">
-        <h1 className="text-2xl font-semibold">Your trips</h1>
+        <div className="flex items-center gap-2">
+          <img src="/icon.svg" alt="" className="h-7 w-7" />
+          <h1 className="text-2xl font-semibold tracking-tight lowercase">itin</h1>
+        </div>
         <Button asChild size="icon" aria-label="New party">
           <Link to="/parties/new">
             <Plus className="h-5 w-5" />
