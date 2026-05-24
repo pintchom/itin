@@ -1,10 +1,63 @@
 import { zValidator } from '@hono/zod-validator';
-import { createActivitySchema } from '@itin/shared/schemas/activity';
+import { createActivitySchema, updateActivitySchema } from '@itin/shared/schemas/activity';
 import { rsvpSchema } from '@itin/shared/schemas/rsvp';
 import { Hono } from 'hono';
 import type { Env } from '../context.ts';
 import { BadRequest, Forbidden, NotFound } from '../errors.ts';
 import { requireAuth } from '../middleware/session.ts';
+
+import type { Activity as DbActivity, ParticipantStatus, PrismaClient } from '@itin/db';
+
+type SerializableActivity = DbActivity & {
+  createdBy: { id: string; firstName: string | null; lastName: string | null; profileImageKey: string | null };
+  participants: Array<{
+    id: string;
+    status: ParticipantStatus;
+    user: { id: string; firstName: string | null; lastName: string | null; profileImageKey: string | null };
+  }>;
+};
+
+const ACTIVITY_INCLUDE = {
+  createdBy: { select: { id: true, firstName: true, lastName: true, profileImageKey: true } },
+  participants: {
+    select: {
+      id: true,
+      status: true,
+      user: { select: { id: true, firstName: true, lastName: true, profileImageKey: true } },
+    },
+  },
+} as const;
+
+const serializeActivity = (a: SerializableActivity) => ({
+  id: a.id,
+  partyId: a.partyId,
+  title: a.title,
+  startsAt: a.startsAt.toISOString(),
+  endsAt: a.endsAt.toISOString(),
+  location: a.location,
+  color: a.color,
+  coverImageKey: a.coverImageKey,
+  createdBy: a.createdBy,
+  participants: a.participants.map((p) => ({ id: p.id, status: p.status, user: p.user })),
+});
+
+// Verifies the caller can edit the activity (creator or party host).
+async function assertCanEditActivity(prisma: PrismaClient, activityId: string, userId: string) {
+  const activity = await prisma.activity.findUnique({
+    where: { id: activityId },
+    select: { id: true, partyId: true, createdById: true },
+  });
+  if (!activity) throw NotFound('Activity not found');
+  const member = await prisma.partyMember.findUnique({
+    where: { partyId_userId: { partyId: activity.partyId, userId } },
+    select: { role: true },
+  });
+  if (!member) throw Forbidden('Not a member of this party');
+  if (activity.createdById !== userId && member.role !== 'HOST') {
+    throw Forbidden('Only the activity creator or party host can edit this activity');
+  }
+  return activity;
+}
 
 export const activityRoutes = new Hono<Env>()
   .use('*', requireAuth())
@@ -45,6 +98,7 @@ export const activityRoutes = new Hono<Env>()
         endsAt: a.endsAt.toISOString(),
         location: a.location,
         color: a.color,
+        coverImageKey: a.coverImageKey,
         createdBy: a.createdBy,
         participants: a.participants.map((p) => ({
           id: p.id,
@@ -90,6 +144,7 @@ export const activityRoutes = new Hono<Env>()
         endsAt: new Date(input.endsAt),
         location: input.location ?? null,
         color: input.color ?? null,
+        coverImageKey: input.coverImageKey ?? null,
         createdById: user.id,
         participants: {
           create: allParticipantIds.map((userId) => ({
@@ -121,6 +176,7 @@ export const activityRoutes = new Hono<Env>()
           endsAt: created.endsAt.toISOString(),
           location: created.location,
           color: created.color,
+          coverImageKey: created.coverImageKey,
           createdBy: created.createdBy,
           participants: created.participants.map((p) => ({
             id: p.id,
@@ -185,5 +241,42 @@ export const rsvpRoutes = new Hono<Env>()
     await prisma.activityParticipant.deleteMany({
       where: { activityId, userId: user.id },
     });
+    return c.json({ ok: true });
+  })
+
+  .patch('/:activityId', zValidator('json', updateActivitySchema), async (c) => {
+    const prisma = c.get('prisma');
+    const user = c.get('user');
+    if (!user) throw Forbidden();
+    const activityId = c.req.param('activityId');
+
+    await assertCanEditActivity(prisma, activityId, user.id);
+    const input = c.req.valid('json');
+
+    const updated = await prisma.activity.update({
+      where: { id: activityId },
+      data: {
+        ...(input.title !== undefined && { title: input.title }),
+        ...(input.startsAt !== undefined && { startsAt: new Date(input.startsAt) }),
+        ...(input.endsAt !== undefined && { endsAt: new Date(input.endsAt) }),
+        ...(input.location !== undefined && { location: input.location }),
+        ...(input.color !== undefined && { color: input.color }),
+        ...(input.coverImageKey !== undefined && { coverImageKey: input.coverImageKey }),
+      },
+      include: ACTIVITY_INCLUDE,
+    });
+
+    return c.json({ activity: serializeActivity(updated) });
+  })
+
+  .delete('/:activityId', async (c) => {
+    const prisma = c.get('prisma');
+    const user = c.get('user');
+    if (!user) throw Forbidden();
+    const activityId = c.req.param('activityId');
+
+    await assertCanEditActivity(prisma, activityId, user.id);
+    await prisma.activity.delete({ where: { id: activityId } });
+
     return c.json({ ok: true });
   });

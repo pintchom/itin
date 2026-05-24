@@ -23,6 +23,7 @@ export type Activity = {
   endsAt: string;
   color: string | null;
   location: string | null;
+  coverImageKey: string | null;
   createdBy: {
     id: string;
     firstName: string | null;

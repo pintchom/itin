@@ -12,6 +12,7 @@ import {
 } from '../../lib/activities';
 import { useSession } from '../../lib/auth';
 import { cn } from '../../lib/cn';
+import { coverImageUrl } from '../../lib/images';
 import type { PartyDetail } from '../../lib/parties';
 import { Avatar } from '../Avatar';
 
@@ -225,14 +226,17 @@ function ActivityCard({
       }
     };
 
+  const hasCover = !!event.coverImageKey;
+
   return (
     <button
       type="button"
       onClick={onToggle}
       aria-expanded={isExpanded}
       className={cn(
-        'group relative rounded-lg bg-bg-elev text-left flex flex-col overflow-hidden transition-all duration-200 active:scale-[0.995]',
+        'group relative rounded-lg text-left flex flex-col overflow-hidden transition-all duration-200 active:scale-[0.995]',
         'border-[1.5px]',
+        hasCover ? 'bg-bg' : 'bg-bg-elev',
         isExpanded
           ? 'basis-full px-4 py-3 shadow-xl shadow-black/50'
           : 'flex-1 min-w-[60%] px-2.5 py-1.5 shadow shadow-black/40',
@@ -245,9 +249,25 @@ function ActivityCard({
         borderColor: event.color ?? undefined,
       }}
     >
+      {hasCover && event.coverImageKey && (
+        <>
+          <img
+            src={coverImageUrl(event.coverImageKey, 'lg')}
+            alt=""
+            aria-hidden
+            className="absolute inset-0 h-full w-full object-cover pointer-events-none"
+          />
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/45 to-black/70 pointer-events-none"
+          />
+        </>
+      )}
+
       <div
         className={cn(
-          'text-fg',
+          'relative z-10',
+          hasCover ? 'text-white drop-shadow-sm' : 'text-fg',
           isExpanded ? 'text-lg font-semibold leading-tight pr-2' : 'text-sm font-medium truncate'
         )}
       >
@@ -256,7 +276,8 @@ function ActivityCard({
 
       <div
         className={cn(
-          'text-fg-muted tabular-nums',
+          'relative z-10 tabular-nums',
+          hasCover ? 'text-white/85' : 'text-fg-muted',
           isExpanded ? 'text-xs mt-1' : 'text-[10px] mt-0.5'
         )}
       >
@@ -265,11 +286,18 @@ function ActivityCard({
       </div>
 
       {event.location && !isExpanded && (
-        <div className="text-[11px] text-fg-muted truncate mt-0.5 pr-14">{event.location}</div>
+        <div
+          className={cn(
+            'relative z-10 text-[11px] truncate mt-0.5 pr-14',
+            hasCover ? 'text-white/85' : 'text-fg-muted'
+          )}
+        >
+          {event.location}
+        </div>
       )}
 
       {goingParticipants.length > 0 && (
-        <div className="absolute bottom-1.5 right-1.5">
+        <div className="absolute bottom-1.5 right-1.5 z-10">
           <GoingStackButton participants={goingParticipants} />
         </div>
       )}
@@ -282,11 +310,19 @@ function ActivityCard({
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.22, ease: 'easeOut' }}
-            className="overflow-hidden"
+            className="relative z-10 overflow-hidden"
           >
             <div className="pt-3 space-y-3">
-              {event.location && <div className="text-sm text-fg">{event.location}</div>}
-              {creator && <div className="text-xs text-fg-muted">Added by {creator}</div>}
+              {event.location && (
+                <div className={cn('text-sm', hasCover ? 'text-white/90' : 'text-fg')}>
+                  {event.location}
+                </div>
+              )}
+              {creator && (
+                <div className={cn('text-xs', hasCover ? 'text-white/70' : 'text-fg-muted')}>
+                  Added by {creator}
+                </div>
+              )}
 
               {currentUserId && (
                 <div className="flex gap-2 pt-0.5 pr-16">
