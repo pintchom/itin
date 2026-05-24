@@ -12,6 +12,8 @@ export const loadSession = (): MiddlewareHandler<Env> => async (c, next) => {
       lastName?: string | null;
       email?: string | null;
       profileImageKey?: string | null;
+      phoneNumber?: string | null;
+      phoneNumberVerified?: boolean | null;
     };
     const sessionUser: SessionUser = {
       id: u.id,
@@ -19,6 +21,8 @@ export const loadSession = (): MiddlewareHandler<Env> => async (c, next) => {
       lastName: u.lastName ?? null,
       email: u.email ?? null,
       profileImageKey: u.profileImageKey ?? null,
+      phoneNumber: u.phoneNumber ?? null,
+      phoneNumberVerified: u.phoneNumberVerified ?? false,
     };
     c.set('user', sessionUser);
   }

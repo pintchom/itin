@@ -6,6 +6,8 @@ export type SessionUser = {
   lastName: string | null;
   email: string | null;
   profileImageKey: string | null;
+  phoneNumber: string | null;
+  phoneNumberVerified: boolean;
 };
 
 export type Variables = {

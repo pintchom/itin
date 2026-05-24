@@ -1,6 +1,7 @@
 import { ImagePlus } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
 import { ApiError } from '../lib/api';
+import { cn } from '../lib/cn';
 import { coverImageUrl } from '../lib/images';
 
 export type ImageUploadProps = {
@@ -8,6 +9,8 @@ export type ImageUploadProps = {
   onChange: (key: string | null) => void;
   label?: string;
   disabled?: boolean;
+  /** `cover` = 16:9 party cover; `square` = profile avatar */
+  aspect?: 'cover' | 'square';
 };
 
 export function ImageUpload({
@@ -15,6 +18,7 @@ export function ImageUpload({
   onChange,
   label = 'Cover image',
   disabled,
+  aspect = 'cover',
 }: ImageUploadProps) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -64,7 +68,12 @@ export function ImageUpload({
         onClick={onPick}
         disabled={disabled || uploading}
         aria-describedby={inputId}
-        className="relative w-full aspect-[16/9] overflow-hidden rounded-2xl border border-border bg-bg-elev flex items-center justify-center text-fg-muted disabled:opacity-50"
+        className={cn(
+          'relative w-full overflow-hidden border border-border bg-bg-elev flex items-center justify-center text-fg-muted disabled:opacity-50',
+          aspect === 'square'
+            ? 'aspect-square max-w-[200px] mx-auto rounded-full'
+            : 'aspect-[16/9] rounded-2xl'
+        )}
       >
         {value ? (
           <img

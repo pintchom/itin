@@ -1,0 +1,11 @@
+{
+  "workbench.editor.enablePreview": false,
+  "workbench.editor.enablePreviewFromQuickOpen": false,
+  "workbench.editor.enablePreviewFromCodeNavigation": false,
+  "workbench.editor.openSideBySideDirection": "right",
+  "rest-client.showResponseInDifferentTab": true,
+  "rest-client.previewResponseInUntitledDocument": true,
+  "rest-client.requestNameAsResponseTabTitle": true,
+  "rest-client.previewResponsePanelTakeFocus": false,
+  "rest-client.followredirect": false
+}

@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { CalendarRange, Plus } from 'lucide-react';
+import { AppHeader } from '../components/AppHeader';
 import { Button } from '../components/ui/Button';
 import { ErrorScreen, LoadingScreen } from '../components/ui/StatusScreen';
 import { formatDateRange } from '../lib/dates';
@@ -11,17 +12,13 @@ export function PartiesList() {
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto">
-      <header className="flex items-center justify-between px-5 pt-2 pb-3">
-        <div className="flex items-center gap-2">
-          <img src="/icon.svg" alt="" className="h-7 w-7" />
-          <h1 className="text-2xl font-semibold tracking-tight lowercase">itin</h1>
-        </div>
+      <AppHeader title="Your trips">
         <Button asChild size="icon" aria-label="New party">
           <Link to="/parties/new">
             <Plus className="h-5 w-5" />
           </Link>
         </Button>
-      </header>
+      </AppHeader>
 
       {parties.isLoading ? (
         <LoadingScreen />

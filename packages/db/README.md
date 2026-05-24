@@ -10,10 +10,10 @@ Use the Docker Compose service at the repo root:
 docker compose up -d postgres
 ```
 
-This exposes Postgres on `localhost:5432` with credentials matching the default `DATABASE_URL` in `.env.example`:
+This exposes Postgres on host port **5433** (`5433:5432` in docker-compose) with credentials matching the default `DATABASE_URL` in `.env.example`:
 
 ```
-postgresql://postgres:postgres@localhost:5432/itin
+postgresql://postgres:postgres@localhost:5433/itin
 ```
 
 If you already have Postgres locally or want to point at a Railway-hosted dev DB, just edit `.env`.

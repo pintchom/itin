@@ -1,0 +1,48 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "api: health → side panel",
+      "type": "shell",
+      "command": "bash scripts/write-api-response.sh 'GET /health' curl -sS '${input:apiBase}/health'",
+      "problemMatcher": [],
+      "presentation": { "reveal": "silent", "panel": "shared", "showReuseMessage": false }
+    },
+    {
+      "label": "api: auth config → side panel",
+      "type": "shell",
+      "command": "bash scripts/write-api-response.sh 'GET /api/auth/config' curl -sS '${input:apiBase}/api/auth/config'",
+      "problemMatcher": [],
+      "presentation": { "reveal": "silent", "panel": "shared", "showReuseMessage": false }
+    },
+    {
+      "label": "api: dev login → side panel",
+      "type": "shell",
+      "command": "bash scripts/write-api-response.sh 'POST /api/dev-login' curl -sS -c '${workspaceFolder}/.vscode/.rest-cookies.txt' -b '${workspaceFolder}/.vscode/.rest-cookies.txt' -X POST '${input:apiBase}/api/dev-login' -H 'Content-Type: application/json' -d '{\"firstName\":\"Test\",\"lastName\":\"User\"}'",
+      "problemMatcher": [],
+      "presentation": { "reveal": "silent", "panel": "shared", "showReuseMessage": false }
+    },
+    {
+      "label": "api: me → side panel",
+      "type": "shell",
+      "command": "bash scripts/write-api-response.sh 'GET /api/me' curl -sS -b '${workspaceFolder}/.vscode/.rest-cookies.txt' '${input:apiBase}/api/me'",
+      "problemMatcher": [],
+      "presentation": { "reveal": "silent", "panel": "shared", "showReuseMessage": false }
+    },
+    {
+      "label": "api: health (terminal)",
+      "type": "shell",
+      "command": "curl -sS '${input:apiBase}/health' | (command -v jq >/dev/null && jq . || cat)",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "focus": true, "clear": true }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "apiBase",
+      "type": "promptString",
+      "description": "API base URL",
+      "default": "http://localhost:3001"
+    }
+  ]
+}

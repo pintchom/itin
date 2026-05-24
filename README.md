@@ -44,10 +44,12 @@ cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
 cp packages/db/.env.example packages/db/.env
 
-docker compose up -d postgres
+docker compose up -d postgres   # Postgres on host port 5433 (see docker-compose.yml)
 bun db:generate
 bun db:migrate            # creates the initial migration
 ```
+
+Default `DATABASE_URL` uses port **5433** to avoid clashing with other local Postgres on 5432. See [docs/ai/SETUP-TROUBLESHOOTING.md](docs/ai/SETUP-TROUBLESHOOTING.md).
 
 Run dev servers in two terminals:
 
@@ -93,3 +95,11 @@ bun db:generate  # regenerate Prisma client
 bun db:migrate   # create + apply a dev migration
 bun db:studio    # open Prisma Studio
 ```
+
+## Contributing / AI workflow
+
+Agents and teammates use shared docs for context and backlog:
+
+- [docs/ai/README.md](docs/ai/README.md) — vibe coding hub, TODO, ROADMAP
+- [docs/standups/README.md](docs/standups/README.md) — daily team standups
+- [AGENTS.md](AGENTS.md) — agent startup checklist (read first in Cursor)
