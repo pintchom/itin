@@ -1,6 +1,6 @@
 import { dayKeyInZone, enumerateDates, minutesInZone, parseCivilDate } from '@itin/shared/time';
 import { format } from 'date-fns';
-import { CalendarPlus, Check, Pencil, X } from 'lucide-react';
+import { AlertCircle, CalendarPlus, Check, Pencil, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -267,10 +267,12 @@ function DaySection({
                   {g.events.map((ev) => {
                     const isNow = isToday && ev.startMin <= nowMin && ev.endMin > nowMin;
                     const canEdit = isHost || ev.event.createdBy.id === currentUserId;
+                    const overlaps = g.events.filter((e) => e.event.id !== ev.event.id);
                     return (
                       <ActivityCard
                         key={ev.event.id}
                         grouped={ev}
+                        overlaps={overlaps}
                         isExpanded={expandedId === ev.event.id}
                         onToggle={() => onToggleExpanded(ev.event.id)}
                         currentUserId={currentUserId}
@@ -315,6 +317,7 @@ function formatDuration(min: number): string {
 
 function ActivityCard({
   grouped,
+  overlaps,
   isExpanded,
   onToggle,
   currentUserId,
@@ -326,6 +329,7 @@ function ActivityCard({
   onEdit,
 }: {
   grouped: GroupedEvent;
+  overlaps: GroupedEvent[];
   isExpanded: boolean;
   onToggle: () => void;
   currentUserId: string | null;
@@ -485,6 +489,34 @@ function ActivityCard({
               {creator && (
                 <div className={cn('text-[11px]', hasCover ? 'text-white/70' : 'text-fg-muted')}>
                   Added by {creator}
+                </div>
+              )}
+
+              {overlaps.length > 0 && (
+                <div
+                  className={cn(
+                    'flex items-start gap-1 text-[10px] leading-tight rounded px-1.5 py-1 border',
+                    hasCover
+                      ? 'bg-black/40 border-amber-300/40 text-amber-100/95'
+                      : 'bg-amber-500/10 border-amber-500/30 text-amber-200/85'
+                  )}
+                >
+                  <AlertCircle className="h-3 w-3 shrink-0 mt-px" />
+                  <div className="min-w-0 flex-1 space-y-px">
+                    {overlaps.map((o) => {
+                      const ovStart = Math.max(startMin, o.startMin);
+                      const ovEnd = Math.min(endMin, o.endMin);
+                      return (
+                        <div key={o.event.id} className="break-words">
+                          <span className="font-medium">{o.event.title}</span>
+                          <span className="opacity-75 tabular-nums">
+                            {' · '}
+                            {formatMinute(ovStart)}–{formatMinute(ovEnd)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
