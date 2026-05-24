@@ -17,6 +17,8 @@ import { coverImageUrl } from '../../lib/images';
 import type { PartyDetail } from '../../lib/parties';
 import { Avatar } from '../Avatar';
 
+type RsvpFilter = 'all' | 'going' | 'not-going';
+
 export function PartyCalendar({
   party,
   isHost,
@@ -35,45 +37,144 @@ export function PartyCalendar({
   const todayKey = dayKeyInZone(now, party.timezone);
   const nowMin = minutesInZone(now, party.timezone);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<RsvpFilter>('all');
   const toggleExpanded = (id: string) => setExpandedId((current) => (current === id ? null : id));
+
+  const filteredActivities = useMemo(() => {
+    const data = activities.data ?? [];
+    const userId = session.data?.id;
+    if (filter === 'all' || !userId) return data;
+    return data.filter((a) => {
+      const mine = a.participants.find((p) => p.user.id === userId);
+      if (filter === 'going') return mine?.status === 'GOING';
+      return mine?.status === 'NOT_GOING';
+    });
+  }, [activities.data, session.data?.id, filter]);
 
   const activitiesByDay = useMemo(() => {
     const map: Record<string, Activity[]> = {};
-    for (const a of activities.data ?? []) {
+    for (const a of filteredActivities) {
       const key = dayKeyInZone(a.startsAt, party.timezone);
       const bucket = map[key] ?? [];
       bucket.push(a);
       map[key] = bucket;
     }
     return map;
-  }, [activities.data, party.timezone]);
+  }, [filteredActivities, party.timezone]);
 
   const populatedDays = useMemo(
     () => allDays.filter((iso) => (activitiesByDay[iso]?.length ?? 0) > 0),
     [allDays, activitiesByDay]
   );
 
-  if (populatedDays.length === 0) return <EmptyCalendar />;
+  const hasAnyActivities = (activities.data ?? []).length > 0;
+
+  if (!hasAnyActivities) return <EmptyCalendar />;
 
   return (
     <div className="flex flex-col">
-      {populatedDays.map((iso) => (
-        <DaySection
-          key={iso}
-          iso={iso}
-          timezone={party.timezone}
-          activities={activitiesByDay[iso] ?? []}
-          expandedId={expandedId}
-          onToggleExpanded={toggleExpanded}
-          currentUserId={session.data?.id ?? null}
-          onRsvp={(activityId, status) => rsvp.mutate({ activityId, status })}
-          onClearRsvp={(activityId) => clearRsvp.mutate(activityId)}
-          todayKey={todayKey}
-          nowMin={nowMin}
-          isHost={isHost}
-          onEditActivity={onEditActivity}
-        />
-      ))}
+      <RsvpFilterBar value={filter} onChange={setFilter} />
+
+      {populatedDays.length === 0 ? (
+        <FilteredEmpty filter={filter} onClear={() => setFilter('all')} />
+      ) : (
+        populatedDays.map((iso) => (
+          <DaySection
+            key={iso}
+            iso={iso}
+            timezone={party.timezone}
+            activities={activitiesByDay[iso] ?? []}
+            expandedId={expandedId}
+            onToggleExpanded={toggleExpanded}
+            currentUserId={session.data?.id ?? null}
+            onRsvp={(activityId, status) => rsvp.mutate({ activityId, status })}
+            onClearRsvp={(activityId) => clearRsvp.mutate(activityId)}
+            todayKey={todayKey}
+            nowMin={nowMin}
+            isHost={isHost}
+            onEditActivity={onEditActivity}
+          />
+        ))
+      )}
+    </div>
+  );
+}
+
+function RsvpFilterBar({
+  value,
+  onChange,
+}: {
+  value: RsvpFilter;
+  onChange: (next: RsvpFilter) => void;
+}) {
+  return (
+    <div className="flex gap-1.5 px-3 pt-3 pb-1.5">
+      <FilterPill active={value === 'all'} onClick={() => onChange('all')}>
+        All
+      </FilterPill>
+      <FilterPill active={value === 'going'} variant="going" onClick={() => onChange('going')}>
+        <Check className="h-3 w-3" strokeWidth={2.5} />
+        Going
+      </FilterPill>
+      <FilterPill
+        active={value === 'not-going'}
+        variant="notGoing"
+        onClick={() => onChange('not-going')}
+      >
+        <X className="h-3 w-3" strokeWidth={2.5} />
+        Not going
+      </FilterPill>
+    </div>
+  );
+}
+
+function FilterPill({
+  active,
+  variant,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  variant?: 'going' | 'notGoing';
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'inline-flex items-center gap-1 px-2.5 h-7 rounded-full border text-[11px] font-medium transition active:scale-95',
+        active && !variant && 'bg-accent border-accent text-accent-fg',
+        active && variant === 'going' && 'bg-emerald-500/25 border-emerald-500 text-emerald-100',
+        active && variant === 'notGoing' && 'bg-rose-500/25 border-rose-500 text-rose-100',
+        !active && 'bg-bg/40 border-border text-fg-muted hover:bg-bg-elev'
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function FilteredEmpty({
+  filter,
+  onClear,
+}: {
+  filter: RsvpFilter;
+  onClear: () => void;
+}) {
+  const label = filter === 'going' ? 'going to anything yet' : "haven't declined anything";
+  return (
+    <div className="flex flex-col items-center text-center px-8 py-10 text-fg-muted">
+      <p className="text-fg">You're not {label}</p>
+      <button
+        type="button"
+        onClick={onClear}
+        className="mt-3 text-xs text-accent underline-offset-2 hover:underline"
+      >
+        Show all activities
+      </button>
     </div>
   );
 }
