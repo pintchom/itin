@@ -7,9 +7,16 @@ Hono on Bun. Better Auth + Prisma + Postgres.
 | Method | Path                              | Auth        | Description                       |
 | ------ | --------------------------------- | ----------- | --------------------------------- |
 | GET    | `/health`                         | none        | Liveness check                    |
+| GET    | `/api/auth/config`                | none        | Which sign-in methods are enabled |
 | ANY    | `/api/auth/**`                    | varies      | Better Auth handler (owns this namespace) |
-| POST   | `/api/dev-login`                  | dev-only    | Sign in by first + last name      |
+| POST   | `/api/email/sign-up`              | none        | Create account (email + password) |
+| POST   | `/api/email/sign-in`              | none        | Sign in with email + password     |
+| POST   | `/api/phone/send-otp`             | none        | Send SMS OTP (logged in dev)      |
+| POST   | `/api/phone/sign-up`              | none        | Verify OTP, set password, sign in |
+| POST   | `/api/phone/sign-in`              | none        | Sign in with phone + password     |
+| POST   | `/api/dev-login`                  | dev-only    | Dev sign-in (creates email account) |
 | GET    | `/api/me`                         | optional    | Current session user (or `null`)  |
+| PATCH  | `/api/me`                         | required    | Update name and profile image key |
 | GET    | `/api/parties`                    | required    | Parties the viewer is a member of |
 | POST   | `/api/parties`                    | required    | Create a party                    |
 | GET    | `/api/parties/:id`                | member only | Party detail with members         |
@@ -32,7 +39,11 @@ Hono on Bun. Better Auth + Prisma + Postgres.
    - Prod:  `<API_ORIGIN>/api/auth/callback/google`
 5. Copy the client id + secret into `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
 
-When both are set the social provider lights up automatically. Until then, the dev-login route is the only way in (gated by `DEV_AUTH_ENABLED`).
+When both are set the social provider lights up automatically. Email/password and phone OTP sign-up are always available. Dev-login (`DEV_AUTH_ENABLED=1`) is for local testing only and still creates a real email+password account under the hood.
+
+### Phone OTP (dev)
+
+OTP codes are printed to the API process stdout. Use E.164 format (e.g. `+15551234567`). Phone sign-up verifies the code, sets a password, then updates the user's name.
 
 ## Image storage
 

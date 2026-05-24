@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { format } from 'date-fns';
 import { CalendarRange, Plus } from 'lucide-react';
+import { AppHeader } from '../components/AppHeader';
 import { Button } from '../components/ui/Button';
 import { coverImageUrl } from '../lib/images';
 import { type PartySummary, useParties } from '../lib/parties';
@@ -21,14 +22,13 @@ export function PartiesList() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <header className="flex items-center justify-between px-5 pt-2 pb-3">
-        <h1 className="text-2xl font-semibold">Your trips</h1>
+      <AppHeader title="Your trips">
         <Button asChild size="icon" aria-label="New party">
           <Link to="/parties/new">
             <Plus className="h-5 w-5" />
           </Link>
         </Button>
-      </header>
+      </AppHeader>
 
       {parties.isLoading ? (
         <div className="px-5 py-10 text-fg-muted">Loading…</div>

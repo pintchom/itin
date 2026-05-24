@@ -1,0 +1,147 @@
+# itin — REST Client / HTTP scratchpad
+# Repo: itin-costa-rica · Run API: `cd apps/api && bun dev` (port 3001)
+# Vite web proxy: use @webBase for browser-origin paths; @apiBase for direct API hits.
+#
+# ── Stable side-by-side (recommended) ─────────────────────────────────────
+# 1. Open this file, then:  Cmd+\  (split editor right)
+# 2. In the RIGHT pane, open:  .vscode/api-response.http
+# 3. Run Task (no focus steal):  Terminal → Run Task → "api: health → side panel"
+#    The right file updates in place; keep typing requests on the left.
+#
+# REST Client "Send Request" opens a separate tab (Cursor quirk; beside preview flashes).
+# Reload window after changing .vscode/settings.json.
+
+@apiBase = http://localhost:3001
+@webBase = http://localhost:5173
+@json = application/json
+
+### ─── Health ───────────────────────────────────────────────────────────────
+
+GET {{apiBase}}/health
+
+### ─── Auth config (itin) ───────────────────────────────────────────────────
+# google: true when GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET are set in apps/api/.env
+
+GET {{apiBase}}/api/auth/config
+
+### ─── Better Auth: session ───────────────────────────────────────────────────
+# Use REST Client cookie jar after dev-login or sign-in responses.
+
+GET {{apiBase}}/api/auth/get-session
+
+### ─── App session user (itin) ────────────────────────────────────────────────
+
+GET {{apiBase}}/api/me
+
+### ─── Email sign-up / sign-in ────────────────────────────────────────────────
+
+# @name emailSignUp
+POST {{apiBase}}/api/email/sign-up
+Content-Type: {{json}}
+
+{
+  "email": "you@example.com",
+  "password": "password123",
+  "firstName": "Test",
+  "lastName": "User"
+}
+
+###
+
+# @name emailSignIn
+POST {{apiBase}}/api/email/sign-in
+Content-Type: {{json}}
+
+{
+  "email": "you@example.com",
+  "password": "password123"
+}
+
+### ─── Phone sign-up / sign-in ─────────────────────────────────────────────────
+# Dev OTP is logged in the API terminal (see sendPhoneOtp).
+
+# @name phoneSendOtp
+POST {{apiBase}}/api/phone/send-otp
+Content-Type: {{json}}
+
+{
+  "phoneNumber": "+15551234567"
+}
+
+###
+
+# @name phoneSignUp
+POST {{apiBase}}/api/phone/sign-up
+Content-Type: {{json}}
+
+{
+  "phoneNumber": "+15551234567",
+  "code": "123456",
+  "password": "password123",
+  "firstName": "Test",
+  "lastName": "User"
+}
+
+###
+
+# @name phoneSignIn
+POST {{apiBase}}/api/phone/sign-in
+Content-Type: {{json}}
+
+{
+  "phoneNumber": "+15551234567",
+  "password": "password123"
+}
+
+### ─── Dev login (DEV_AUTH_ENABLED=1 only) ────────────────────────────────────
+
+# @name devLogin
+POST {{apiBase}}/api/dev-login
+Content-Type: {{json}}
+
+{
+  "firstName": "Test",
+  "lastName": "User"
+}
+
+### ─── Better Auth: sign out ──────────────────────────────────────────────────
+
+POST {{apiBase}}/api/auth/sign-out
+
+### ─── Google OAuth (Better Auth) ─────────────────────────────────────────────
+#
+# Prerequisites (apps/api/.env):
+#   GOOGLE_CLIENT_ID=...
+#   GOOGLE_CLIENT_SECRET=...
+# Google Cloud redirect URI (authorized):
+#   http://localhost:3001/api/auth/callback/google
+#
+# Social sign-in is POST (not GET). Response may include { "url": "..." } for redirect.
+# Complete OAuth in a browser; REST Client alone cannot finish the Google consent UI.
+#
+# callbackURL / errorCallbackURL must be absolute URLs on WEB_ORIGIN (5173 in dev).
+
+# @name googleSignIn
+POST {{apiBase}}/api/auth/sign-in/social
+Content-Type: {{json}}
+
+{
+  "provider": "google",
+  "callbackURL": "{{webBase}}/parties",
+  "errorCallbackURL": "{{webBase}}/signin?error=oauth"
+}
+
+### ─── Google OAuth (browser) ─────────────────────────────────────────────────
+# After configuring credentials, open Sign-in in the app:
+#
+#   {{webBase}}/signin
+#
+# Or start OAuth from the UI (“Continue with Google”). Session cookie is set on callback.
+#
+# Verify session:
+#   GET {{apiBase}}/api/me
+#   GET {{apiBase}}/api/auth/get-session
+
+### ─── Parties (requires session cookie) ──────────────────────────────────────
+
+GET {{apiBase}}/api/parties

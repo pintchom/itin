@@ -13,6 +13,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
     "@hono/zod-validator": "^0.4.2",
     "@itin/db": "workspace:*",
     "@itin/shared": "workspace:*",

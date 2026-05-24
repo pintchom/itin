@@ -12,6 +12,7 @@ import { JoinInvite } from './pages/JoinInvite';
 import { PartiesList } from './pages/PartiesList';
 import { PartyDetail } from './pages/PartyDetail';
 import { PartyNew } from './pages/PartyNew';
+import { Settings } from './pages/Settings';
 import { SignIn } from './pages/SignIn';
 
 export const queryClient = new QueryClient({
@@ -44,7 +45,10 @@ const indexRoute = createRoute({
 const signInRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/signin',
-  validateSearch: z.object({ next: z.string().optional() }),
+  validateSearch: z.object({
+    next: z.string().optional(),
+    error: z.enum(['oauth']).optional(),
+  }),
   component: SignIn,
 });
 
@@ -78,11 +82,17 @@ const partyDetailRoute = createRoute({
   component: PartyDetail,
 });
 
+const settingsRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/settings',
+  component: Settings,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
   joinRoute,
-  appLayoutRoute.addChildren([partiesIndexRoute, partyNewRoute, partyDetailRoute]),
+  appLayoutRoute.addChildren([partiesIndexRoute, partyNewRoute, partyDetailRoute, settingsRoute]),
 ]);
 
 export const router = createRouter({

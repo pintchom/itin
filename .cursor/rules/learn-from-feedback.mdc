@@ -1,0 +1,18 @@
+---
+description: Turn user corrections into durable rules so mistakes are not repeated
+alwaysApply: true
+---
+
+# Learn from feedback
+
+When a programmer is frustrated, says you made a mistake, or corrects your work:
+
+1. **Acknowledge** the issue briefly; do not argue or over-apologize.
+2. **Diagnose** the root cause (wrong assumption, skipped step, ignored project convention, etc.).
+3. **Generalize** — write a short, reusable rule that would have prevented it (not a one-off fix description).
+4. **Record** — append that rule to [docs/ai/LEARNINGS.md](../../docs/ai/LEARNINGS.md) under the right category, with today’s date and a one-line context if helpful.
+5. **Apply** the rule immediately in the current task and in all future work in this repo.
+
+If the lesson is structural (always applies), also add or tighten a bullet in [AGENTS.md](../../AGENTS.md) or [docs/ai/WORKFLOW.md](../../docs/ai/WORKFLOW.md) when appropriate.
+
+Do not record personal attacks or vague venting as rules — only concrete, actionable lessons.

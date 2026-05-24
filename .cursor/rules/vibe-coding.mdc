@@ -1,0 +1,21 @@
+---
+description: Agent onboarding — read shared docs before coding
+alwaysApply: true
+---
+
+# Vibe coding (itin)
+
+Before writing or changing code:
+
+1. Read [AGENTS.md](../../AGENTS.md) and [docs/ai/TODO.md](../../docs/ai/TODO.md).
+2. Skim [docs/ai/LEARNINGS.md](../../docs/ai/LEARNINGS.md) — rules from past corrections.
+3. Read today's file in [docs/standups/](../../docs/standups/) (`YYYY-MM-DD.md`).
+
+After meaningful work:
+
+- Update [docs/ai/TODO.md](../../docs/ai/TODO.md) (move items to **Done** when finished).
+- Add bullets to today's standup under the relevant name.
+
+If the user corrected a mistake: follow [learn-from-feedback.mdc](learn-from-feedback.mdc) and update [LEARNINGS.md](../../docs/ai/LEARNINGS.md).
+
+Conventions: Bun monorepo, Biome lint, `bun typecheck` before done. Do not commit unless the user asks. No secrets in git.

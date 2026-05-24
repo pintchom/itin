@@ -1,7 +1,14 @@
 import { prisma } from '@itin/db';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
+import { phoneNumber } from 'better-auth/plugins';
 import { env, googleConfigured } from '../env.ts';
+import {
+  isValidE164Phone,
+  normalizePhoneNumber,
+  phoneTempEmail,
+  sendPhoneOtp,
+} from './phone-otp.ts';
 
 export const auth = betterAuth({
   appName: 'itin',
@@ -15,6 +22,8 @@ export const auth = betterAuth({
     autoSignIn: true,
     disableSignUp: false,
     requireEmailVerification: false,
+    minPasswordLength: 8,
+    maxPasswordLength: 128,
   },
   socialProviders: googleConfigured
     ? {
@@ -28,6 +37,20 @@ export const auth = betterAuth({
         },
       }
     : {},
+  plugins: [
+    phoneNumber({
+      otpLength: 6,
+      expiresIn: 300,
+      phoneNumberValidator: async (phone) => isValidE164Phone(normalizePhoneNumber(phone)),
+      sendOTP: async ({ phoneNumber: phone, code }) => {
+        await sendPhoneOtp(normalizePhoneNumber(phone), code);
+      },
+      signUpOnVerification: {
+        getTempEmail: (phone) => phoneTempEmail(normalizePhoneNumber(phone)),
+        getTempName: (phone) => normalizePhoneNumber(phone),
+      },
+    }),
+  ],
   user: {
     additionalFields: {
       firstName: { type: 'string', required: false, input: true },

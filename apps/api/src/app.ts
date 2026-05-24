@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { auth } from './auth/better-auth.ts';
 import type { Env } from './context.ts';
-import { env } from './env.ts';
+import { env, googleConfigured } from './env.ts';
 import { errorHandler } from './middleware/error.ts';
 import { requestLogger } from './middleware/logger.ts';
 import { loadSession } from './middleware/session.ts';
@@ -34,6 +34,15 @@ export const createApp = () => {
   });
 
   app.onError(errorHandler);
+
+  app.get('/api/auth/config', (c) =>
+    c.json({
+      google: googleConfigured,
+      devAuth: Boolean(env.DEV_AUTH_ENABLED),
+      emailPassword: true,
+      phone: true,
+    })
+  );
 
   app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
 
