@@ -1,0 +1,28 @@
+{
+  "name": "itin",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "db:generate": "bun --filter @itin/db run generate",
+    "db:migrate": "bun --filter @itin/db run migrate",
+    "db:push": "bun --filter @itin/db run push",
+    "db:studio": "bun --filter @itin/db run studio"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3"
+  },
+  "packageManager": "bun@1.2.5",
+  "engines": {
+    "bun": ">=1.2.0"
+  }
+}

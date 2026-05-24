@@ -1,0 +1,29 @@
+{
+  "name": "@itin/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./app": "./src/app.ts"
+  },
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "bun run src/index.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.4.2",
+    "@itin/db": "workspace:*",
+    "@itin/shared": "workspace:*",
+    "better-auth": "^1.1.13",
+    "hono": "^4.6.16",
+    "sharp": "^0.33.5",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@itin/config": "workspace:*",
+    "@types/bun": "^1.1.14",
+    "typescript": "^5.7.3"
+  }
+}

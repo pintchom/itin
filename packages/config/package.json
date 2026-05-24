@@ -1,0 +1,7 @@
+{
+  "name": "@itin/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": ["tsconfig.base.json", "tsconfig.node.json", "tsconfig.react.json"]
+}

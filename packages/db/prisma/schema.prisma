@@ -1,0 +1,135 @@
+// Prisma schema for itin.
+// Better Auth tables (User, Account, Session, Verification) live alongside
+// app-domain tables (Party, PartyMember, Invite). Activity tables come in a
+// follow-up plan.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = []
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Better Auth ----------
+
+model User {
+  id              String   @id @default(cuid())
+  email           String?  @unique
+  emailVerified   Boolean  @default(false)
+  name            String?
+  firstName       String?
+  lastName        String?
+  image           String?
+  profileImageKey String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  accounts       Account[]
+  sessions       Session[]
+  partyMembers   PartyMember[]
+  createdParties Party[]       @relation("PartyCreator")
+  createdInvites Invite[]      @relation("InviteCreator")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+// ---------- Domain ----------
+
+enum PartyRole {
+  HOST
+  MEMBER
+}
+
+model Party {
+  id            String   @id @default(cuid())
+  title         String
+  startDate     DateTime @db.Date
+  endDate       DateTime @db.Date
+  coverImageKey String?
+  timezone      String   @default("UTC")
+  createdById   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  createdBy User          @relation("PartyCreator", fields: [createdById], references: [id])
+  members   PartyMember[]
+  invites   Invite[]
+
+  @@index([createdById])
+}
+
+model PartyMember {
+  id       String    @id @default(cuid())
+  partyId  String
+  userId   String
+  role     PartyRole @default(MEMBER)
+  joinedAt DateTime  @default(now())
+
+  party Party @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([partyId, userId])
+  @@index([userId])
+}
+
+model Invite {
+  id          String    @id @default(cuid())
+  partyId     String
+  token       String    @unique
+  createdById String
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  party     Party @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  createdBy User  @relation("InviteCreator", fields: [createdById], references: [id])
+
+  @@index([partyId])
+}
