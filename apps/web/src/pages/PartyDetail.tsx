@@ -36,8 +36,8 @@ export function PartyDetail() {
   const isHost = p.role === 'HOST';
 
   return (
-    <div className="flex-1 overflow-y-auto overscroll-contain" data-scroll-root>
-      <header className="relative w-full aspect-[16/9] bg-bg-elev">
+    <div className="flex-1 flex flex-col min-h-0">
+      <header className="shrink-0 relative w-full aspect-[16/9] bg-bg-elev">
         {p.coverImageKey && (
           <img
             src={coverImageUrl(p.coverImageKey, 'lg')}
@@ -88,7 +88,9 @@ export function PartyDetail() {
         </div>
       </header>
 
-      <PartyCalendar party={p} />
+      <div className="flex-1 overflow-y-auto overscroll-contain min-h-0">
+        <PartyCalendar party={p} />
+      </div>
 
       {editing && <PartyEditDialog party={p} onClose={() => setEditing(false)} />}
     </div>

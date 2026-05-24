@@ -27,7 +27,7 @@ type RouterContext = { queryClient: QueryClient };
 
 const rootRoute = createRootRouteWithContext<RouterContext>()({
   component: () => (
-    <div className="min-h-dvh bg-bg text-fg flex flex-col">
+    <div className="h-dvh bg-bg text-fg flex flex-col">
       <Outlet />
     </div>
   ),

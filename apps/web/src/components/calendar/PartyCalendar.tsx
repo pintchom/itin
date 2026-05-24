@@ -69,8 +69,8 @@ function DaySection({
   );
 
   return (
-    <section className="flex gap-3 px-4 py-3 border-b border-border last:border-b-0">
-      <div className="w-10 shrink-0 pt-1 text-fg-muted">
+    <section className="flex gap-3 px-4 py-3 border-b border-border last:border-b-0 items-start">
+      <div className="sticky top-2 w-10 shrink-0 text-fg-muted">
         <div className="text-[10px] uppercase tracking-wide">{format(d, 'EEE')}</div>
         <div className="text-xl font-semibold leading-none mt-1 tabular-nums">{format(d, 'd')}</div>
       </div>

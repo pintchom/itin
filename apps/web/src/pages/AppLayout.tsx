@@ -21,7 +21,7 @@ export function AppLayout() {
   if (!session.data) return null;
 
   return (
-    <div className="flex-1 flex flex-col pt-safe">
+    <div className="flex-1 flex flex-col pt-safe min-h-0">
       <Outlet />
     </div>
   );

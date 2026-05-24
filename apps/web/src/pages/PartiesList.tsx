@@ -10,7 +10,7 @@ export function PartiesList() {
   const parties = useParties();
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col overflow-y-auto">
       <header className="flex items-center justify-between px-5 pt-2 pb-3">
         <div className="flex items-center gap-2">
           <img src="/icon.svg" alt="" className="h-7 w-7" />
