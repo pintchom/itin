@@ -129,14 +129,16 @@ function DaySection({
   }
 
   return (
-    <section className="flex gap-3 px-4 py-3 border-b border-border last:border-b-0 items-start">
-      <div className="sticky top-2 w-10 shrink-0 text-fg-muted">
-        <div className="text-[10px] uppercase tracking-wide">{format(d, 'EEE')}</div>
-        <div className="text-xl font-semibold leading-none mt-1 tabular-nums">{format(d, 'd')}</div>
+    <section className="flex gap-2.5 px-3 py-2 border-b border-border last:border-b-0 items-start">
+      <div className="sticky top-2 w-8 shrink-0 text-fg-muted">
+        <div className="text-[9px] uppercase tracking-wide">{format(d, 'EEE')}</div>
+        <div className="text-base font-semibold leading-none mt-0.5 tabular-nums">
+          {format(d, 'd')}
+        </div>
       </div>
 
       <div className="flex-1 min-w-0">
-        <ol className="space-y-2">
+        <ol className="space-y-1.5">
           {renderItems.map((item) => {
             if (item.kind === 'now') {
               return <NowMarker key="now" min={item.min} />;
@@ -169,9 +171,9 @@ function DaySection({
 
 // Pixels-per-minute scaling for activity cards. Clamped so 30-min events stay
 // legible and full-day events don't dominate the layout.
-const MIN_HEIGHT_PX = 56;
-const MAX_HEIGHT_PX = 240;
-const PX_PER_MIN = 0.55;
+const MIN_HEIGHT_PX = 46;
+const MAX_HEIGHT_PX = 200;
+const PX_PER_MIN = 0.45;
 
 function cardHeight(durationMin: number): number {
   const raw = 36 + PX_PER_MIN * durationMin;
@@ -229,11 +231,11 @@ function ActivityCard({
       onClick={onToggle}
       aria-expanded={isExpanded}
       className={cn(
-        'group relative rounded-xl bg-bg-elev text-left flex flex-col overflow-hidden transition-all duration-200 active:scale-[0.995]',
+        'group relative rounded-lg bg-bg-elev text-left flex flex-col overflow-hidden transition-all duration-200 active:scale-[0.995]',
         'border-[1.5px]',
         isExpanded
-          ? 'basis-full px-5 py-4 shadow-xl shadow-black/50'
-          : 'flex-1 min-w-[60%] px-3 py-2.5 shadow-md shadow-black/40',
+          ? 'basis-full px-4 py-3 shadow-xl shadow-black/50'
+          : 'flex-1 min-w-[60%] px-2.5 py-1.5 shadow shadow-black/40',
         !event.color && 'border-border',
         isExpanded && 'ring-2 ring-accent/40',
         isPast && !isExpanded && 'opacity-55'
@@ -245,8 +247,8 @@ function ActivityCard({
     >
       <div
         className={cn(
-          'text-fg font-medium',
-          isExpanded ? 'text-xl font-semibold leading-tight pr-2' : 'truncate'
+          'text-fg',
+          isExpanded ? 'text-lg font-semibold leading-tight pr-2' : 'text-sm font-medium truncate'
         )}
       >
         {event.title}
@@ -255,7 +257,7 @@ function ActivityCard({
       <div
         className={cn(
           'text-fg-muted tabular-nums',
-          isExpanded ? 'text-sm mt-1.5' : 'text-[11px] mt-0.5'
+          isExpanded ? 'text-xs mt-1' : 'text-[10px] mt-0.5'
         )}
       >
         {formatMinute(startMin)} – {formatMinute(endMin)}
@@ -263,11 +265,11 @@ function ActivityCard({
       </div>
 
       {event.location && !isExpanded && (
-        <div className="text-xs text-fg-muted truncate mt-1 pr-16">{event.location}</div>
+        <div className="text-[11px] text-fg-muted truncate mt-0.5 pr-14">{event.location}</div>
       )}
 
       {goingParticipants.length > 0 && (
-        <div className="absolute bottom-2 right-2">
+        <div className="absolute bottom-1.5 right-1.5">
           <GoingStackButton participants={goingParticipants} />
         </div>
       )}
@@ -282,18 +284,18 @@ function ActivityCard({
             transition={{ duration: 0.22, ease: 'easeOut' }}
             className="overflow-hidden"
           >
-            <div className="pt-5 space-y-4">
-              {event.location && <div className="text-base text-fg">{event.location}</div>}
-              {creator && <div className="text-sm text-fg-muted">Added by {creator}</div>}
+            <div className="pt-3 space-y-3">
+              {event.location && <div className="text-sm text-fg">{event.location}</div>}
+              {creator && <div className="text-xs text-fg-muted">Added by {creator}</div>}
 
               {currentUserId && (
-                <div className="flex gap-2.5 pt-1 pr-20">
+                <div className="flex gap-2 pt-0.5 pr-16">
                   <RsvpButton
                     active={myParticipation?.status === 'GOING'}
                     variant="going"
                     onClick={handleRsvpClick('GOING')}
                   >
-                    <Check className="h-5 w-5" />
+                    <Check className="h-4 w-4" />
                     Yes
                   </RsvpButton>
                   <RsvpButton
@@ -301,7 +303,7 @@ function ActivityCard({
                     variant="notGoing"
                     onClick={handleRsvpClick('NOT_GOING')}
                   >
-                    <X className="h-5 w-5" />
+                    <X className="h-4 w-4" />
                     No
                   </RsvpButton>
                 </div>
@@ -424,7 +426,7 @@ function RsvpButton({
       type="button"
       onClick={onClick}
       className={cn(
-        'flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-xl text-base font-medium border-2 transition active:scale-[0.98]',
+        'flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg text-sm font-medium border transition active:scale-[0.98]',
         active && variant === 'going' && 'bg-emerald-500/20 border-emerald-500/60 text-emerald-200',
         active && variant === 'notGoing' && 'bg-rose-500/20 border-rose-500/60 text-rose-200',
         !active && 'bg-bg/40 border-border text-fg-muted hover:bg-bg-elev'
@@ -466,11 +468,11 @@ function NowMarker({ min }: { min: number }) {
   return (
     <li
       aria-label={`Current time ${formatMinute(min)}`}
-      className="relative flex items-center gap-2 py-1.5"
+      className="relative flex items-center gap-1.5 py-1"
     >
-      <span className="h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_0_3px_rgba(244,63,94,0.18)] shrink-0" />
+      <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shadow-[0_0_0_2.5px_rgba(244,63,94,0.18)] shrink-0" />
       <span className="flex-1 h-px bg-rose-500/70" />
-      <span className="text-[10px] uppercase tracking-wider font-semibold text-rose-300/90 tabular-nums shrink-0">
+      <span className="text-[9px] uppercase tracking-wider font-semibold text-rose-300/90 tabular-nums shrink-0">
         Now &middot; {formatMinute(min)}
       </span>
     </li>
