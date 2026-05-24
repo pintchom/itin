@@ -1,9 +1,9 @@
 import { useNavigate, useParams } from '@tanstack/react-router';
-import { format } from 'date-fns';
 import { useEffect } from 'react';
 import { Button } from '../components/ui/Button';
 import { ErrorScreen, LoadingScreen } from '../components/ui/StatusScreen';
 import { useSession } from '../lib/auth';
+import { formatCivilDate } from '../lib/dates';
 import { coverImageUrl } from '../lib/images';
 import { pendingInvite, useClaimInvite, useInvitePreview } from '../lib/invites';
 
@@ -44,8 +44,8 @@ export function JoinInvite() {
   }
 
   const party = preview.data.party;
-  const startsAt = format(new Date(`${party.startDate}T00:00:00Z`), 'MMM d, yyyy');
-  const endsAt = format(new Date(`${party.endDate}T00:00:00Z`), 'MMM d, yyyy');
+  const startsAt = formatCivilDate(party.startDate, 'MMM d, yyyy');
+  const endsAt = formatCivilDate(party.endDate, 'MMM d, yyyy');
 
   if (!session.data) {
     return (

@@ -1,25 +1,14 @@
 import { Link, useParams } from '@tanstack/react-router';
-import { format } from 'date-fns';
 import { ChevronLeft, Pencil, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { PartyCalendar } from '../components/calendar/PartyCalendar';
 import { Button } from '../components/ui/Button';
 import { ErrorScreen, LoadingScreen } from '../components/ui/StatusScreen';
+import { formatDateRange } from '../lib/dates';
 import { coverImageUrl } from '../lib/images';
 import { buildInviteUrl, useCreateInvite } from '../lib/invites';
 import { useParty } from '../lib/parties';
 import { PartyEditDialog } from './PartyEdit';
-
-const formatRange = (start: string, end: string) => {
-  const s = new Date(`${start}T00:00:00Z`);
-  const e = new Date(`${end}T00:00:00Z`);
-  const sameMonth =
-    s.getUTCMonth() === e.getUTCMonth() && s.getUTCFullYear() === e.getUTCFullYear();
-  const sameYear = s.getUTCFullYear() === e.getUTCFullYear();
-  if (sameMonth) return `${format(s, 'MMM d')}–${format(e, 'd, yyyy')}`;
-  if (sameYear) return `${format(s, 'MMM d')} – ${format(e, 'MMM d, yyyy')}`;
-  return `${format(s, 'MMM d, yyyy')} – ${format(e, 'MMM d, yyyy')}`;
-};
 
 export function PartyDetail() {
   const { partyId } = useParams({ strict: false }) as { partyId: string };
@@ -96,7 +85,7 @@ export function PartyDetail() {
           </div>
           <div className="absolute left-5 right-5 bottom-3 text-white">
             <div className="text-2xl font-semibold drop-shadow">{p.title}</div>
-            <div className="text-sm opacity-90">{formatRange(p.startDate, p.endDate)}</div>
+            <div className="text-sm opacity-90">{formatDateRange(p.startDate, p.endDate)}</div>
           </div>
         </div>
       </header>

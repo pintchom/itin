@@ -9,10 +9,21 @@ export function isValidIanaTimezone(tz: string): boolean {
   }
 }
 
+// Parses a YYYY-MM-DD as midnight UTC. Use this for date math / iteration where
+// you want a fixed-offset anchor that doesn't drift across DST boundaries.
 export function parseIsoDate(value: string): Date {
   const [y, m, d] = value.split('-').map((n) => Number.parseInt(n, 10));
   if (!y || !m || !d) throw new Error(`Invalid date: ${value}`);
   return new Date(Date.UTC(y, m - 1, d));
+}
+
+// Parses a YYYY-MM-DD as midnight LOCAL time. Use this for display: feeding
+// the result to a local-zone formatter (date-fns `format`, etc.) yields the
+// same calendar day the user originally picked, regardless of UTC offset.
+export function parseCivilDate(value: string): Date {
+  const [y, m, d] = value.split('-').map((n) => Number.parseInt(n, 10));
+  if (!y || !m || !d) throw new Error(`Invalid date: ${value}`);
+  return new Date(y, m - 1, d);
 }
 
 export function formatIsoDate(date: Date): string {

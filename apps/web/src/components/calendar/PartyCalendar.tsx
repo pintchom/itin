@@ -1,4 +1,4 @@
-import { enumerateDates } from '@itin/shared/time';
+import { enumerateDates, parseCivilDate } from '@itin/shared/time';
 import { format } from 'date-fns';
 import { useMemo, useState } from 'react';
 import { useActivities } from '../../lib/activities';
@@ -32,7 +32,7 @@ function DayTabs({
     <div className="overflow-x-auto border-b border-border bg-bg snap-x">
       <div className="flex gap-1.5 px-3 py-2 min-w-max">
         {days.map((iso) => {
-          const d = new Date(`${iso}T00:00:00Z`);
+          const d = parseCivilDate(iso);
           const isActive = iso === active;
           return (
             <button

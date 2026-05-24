@@ -1,21 +1,10 @@
 import { Link } from '@tanstack/react-router';
-import { format } from 'date-fns';
 import { CalendarRange, Plus } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { ErrorScreen, LoadingScreen } from '../components/ui/StatusScreen';
+import { formatDateRange } from '../lib/dates';
 import { coverImageUrl } from '../lib/images';
 import { type PartySummary, useParties } from '../lib/parties';
-
-const formatRange = (start: string, end: string) => {
-  const s = new Date(`${start}T00:00:00Z`);
-  const e = new Date(`${end}T00:00:00Z`);
-  const sameMonth =
-    s.getUTCMonth() === e.getUTCMonth() && s.getUTCFullYear() === e.getUTCFullYear();
-  const sameYear = s.getUTCFullYear() === e.getUTCFullYear();
-  if (sameMonth) return `${format(s, 'MMM d')}–${format(e, 'd, yyyy')}`;
-  if (sameYear) return `${format(s, 'MMM d')} – ${format(e, 'MMM d, yyyy')}`;
-  return `${format(s, 'MMM d, yyyy')} – ${format(e, 'MMM d, yyyy')}`;
-};
 
 export function PartiesList() {
   const parties = useParties();
@@ -38,7 +27,7 @@ export function PartiesList() {
       ) : parties.data && parties.data.length > 0 ? (
         <ul className="px-5 space-y-3 pb-12">
           {parties.data.map((p) => (
-            <PartyCard key={p.id} party={p} formatted={formatRange(p.startDate, p.endDate)} />
+            <PartyCard key={p.id} party={p} formatted={formatDateRange(p.startDate, p.endDate)} />
           ))}
         </ul>
       ) : (
