@@ -6,11 +6,12 @@ import { MembersStack } from '../components/MembersStack';
 import { PartyCalendar } from '../components/calendar/PartyCalendar';
 import { Button } from '../components/ui/Button';
 import { ErrorScreen, LoadingScreen } from '../components/ui/StatusScreen';
+import type { Activity } from '../lib/activities';
 import { formatDateRange } from '../lib/dates';
 import { coverImageUrl } from '../lib/images';
 import { buildInviteUrl, useCreateInvite } from '../lib/invites';
 import { useParty } from '../lib/parties';
-import { CreateActivitySheet } from './CreateActivitySheet';
+import { ActivityFormSheet } from './ActivityFormSheet';
 import { PartyEditDialog } from './PartyEdit';
 
 export function PartyDetail() {
@@ -20,6 +21,15 @@ export function PartyDetail() {
   const [editing, setEditing] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+
+  const sheetOpen = creating || editingActivity !== null;
+  const handleSheetOpenChange = (open: boolean) => {
+    if (!open) {
+      setCreating(false);
+      setEditingActivity(null);
+    }
+  };
 
   const onInvite = async () => {
     const { token } = await createInvite.mutateAsync(undefined);
@@ -102,7 +112,11 @@ export function PartyDetail() {
       </header>
 
       <div className="flex-1 overflow-y-auto overscroll-contain min-h-0">
-        <PartyCalendar party={p} />
+        <PartyCalendar
+          party={p}
+          isHost={isHost}
+          onEditActivity={(activity) => setEditingActivity(activity)}
+        />
       </div>
 
       <button
@@ -117,7 +131,12 @@ export function PartyDetail() {
 
       {editing && <PartyEditDialog party={p} onClose={() => setEditing(false)} />}
       <MembersSheet party={p} open={membersOpen} onOpenChange={setMembersOpen} />
-      <CreateActivitySheet party={p} open={creating} onOpenChange={setCreating} />
+      <ActivityFormSheet
+        party={p}
+        activity={editingActivity}
+        open={sheetOpen}
+        onOpenChange={handleSheetOpenChange}
+      />
     </div>
   );
 }

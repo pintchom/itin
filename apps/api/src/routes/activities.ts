@@ -9,11 +9,21 @@ import { requireAuth } from '../middleware/session.ts';
 import type { Activity as DbActivity, ParticipantStatus, PrismaClient } from '@itin/db';
 
 type SerializableActivity = DbActivity & {
-  createdBy: { id: string; firstName: string | null; lastName: string | null; profileImageKey: string | null };
+  createdBy: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    profileImageKey: string | null;
+  };
   participants: Array<{
     id: string;
     status: ParticipantStatus;
-    user: { id: string; firstName: string | null; lastName: string | null; profileImageKey: string | null };
+    user: {
+      id: string;
+      firstName: string | null;
+      lastName: string | null;
+      profileImageKey: string | null;
+    };
   }>;
 };
 
@@ -32,6 +42,7 @@ const serializeActivity = (a: SerializableActivity) => ({
   id: a.id,
   partyId: a.partyId,
   title: a.title,
+  description: a.description,
   startsAt: a.startsAt.toISOString(),
   endsAt: a.endsAt.toISOString(),
   location: a.location,
@@ -90,22 +101,7 @@ export const activityRoutes = new Hono<Env>()
     });
 
     return c.json({
-      activities: activities.map((a) => ({
-        id: a.id,
-        partyId: a.partyId,
-        title: a.title,
-        startsAt: a.startsAt.toISOString(),
-        endsAt: a.endsAt.toISOString(),
-        location: a.location,
-        color: a.color,
-        coverImageKey: a.coverImageKey,
-        createdBy: a.createdBy,
-        participants: a.participants.map((p) => ({
-          id: p.id,
-          status: p.status,
-          user: p.user,
-        })),
-      })),
+      activities: activities.map(serializeActivity),
     });
   })
 
@@ -140,6 +136,7 @@ export const activityRoutes = new Hono<Env>()
       data: {
         partyId,
         title: input.title,
+        description: input.description ?? null,
         startsAt: new Date(input.startsAt),
         endsAt: new Date(input.endsAt),
         location: input.location ?? null,
@@ -154,39 +151,10 @@ export const activityRoutes = new Hono<Env>()
           })),
         },
       },
-      include: {
-        createdBy: { select: { id: true, firstName: true, lastName: true, profileImageKey: true } },
-        participants: {
-          select: {
-            id: true,
-            status: true,
-            user: { select: { id: true, firstName: true, lastName: true, profileImageKey: true } },
-          },
-        },
-      },
+      include: ACTIVITY_INCLUDE,
     });
 
-    return c.json(
-      {
-        activity: {
-          id: created.id,
-          partyId: created.partyId,
-          title: created.title,
-          startsAt: created.startsAt.toISOString(),
-          endsAt: created.endsAt.toISOString(),
-          location: created.location,
-          color: created.color,
-          coverImageKey: created.coverImageKey,
-          createdBy: created.createdBy,
-          participants: created.participants.map((p) => ({
-            id: p.id,
-            status: p.status,
-            user: p.user,
-          })),
-        },
-      },
-      201
-    );
+    return c.json({ activity: serializeActivity(created) }, 201);
   });
 
 export const rsvpRoutes = new Hono<Env>()
@@ -257,6 +225,7 @@ export const rsvpRoutes = new Hono<Env>()
       where: { id: activityId },
       data: {
         ...(input.title !== undefined && { title: input.title }),
+        ...(input.description !== undefined && { description: input.description }),
         ...(input.startsAt !== undefined && { startsAt: new Date(input.startsAt) }),
         ...(input.endsAt !== undefined && { endsAt: new Date(input.endsAt) }),
         ...(input.location !== undefined && { location: input.location }),
