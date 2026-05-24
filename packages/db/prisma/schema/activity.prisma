@@ -1,6 +1,3 @@
-// Minimal Activity model — enough to render the calendar.
-// RSVP, assignments, and richer fields are deferred to the activity-creation plan.
-
 model Activity {
   id          String   @id @default(cuid())
   partyId     String
@@ -13,9 +10,35 @@ model Activity {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  party     Party @relation(fields: [partyId], references: [id], onDelete: Cascade)
-  createdBy User  @relation("ActivityCreator", fields: [createdById], references: [id])
+  party        Party                 @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  createdBy    User                  @relation("ActivityCreator", fields: [createdById], references: [id])
+  participants ActivityParticipant[]
 
   @@index([partyId])
   @@index([partyId, startsAt])
+}
+
+enum ParticipantStatus {
+  GOING
+  NOT_GOING
+}
+
+// A user's stance on an activity. Absence of a row means "undecided".
+// Pre-assignment at activity creation inserts rows with status = GOING.
+// Self-RSVP inserts/updates the caller's own row.
+model ActivityParticipant {
+  id          String            @id @default(cuid())
+  activityId  String
+  userId      String
+  status      ParticipantStatus
+  respondedAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user     User     @relation("ActivityParticipations", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([activityId, userId])
+  @@index([userId])
+  @@index([activityId, status])
 }

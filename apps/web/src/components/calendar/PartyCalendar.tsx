@@ -1,15 +1,26 @@
 import { dayKeyInZone, enumerateDates, parseCivilDate } from '@itin/shared/time';
 import { format } from 'date-fns';
-import { CalendarPlus } from 'lucide-react';
+import { CalendarPlus, Check, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useMemo, useState } from 'react';
-import { type Activity, useActivities } from '../../lib/activities';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type Activity,
+  type ActivityParticipant,
+  useActivities,
+  useClearRsvp,
+  useRsvp,
+} from '../../lib/activities';
+import { useSession } from '../../lib/auth';
 import { cn } from '../../lib/cn';
 import type { PartyDetail } from '../../lib/parties';
+import { Avatar } from '../Avatar';
 
 export function PartyCalendar({ party }: { party: PartyDetail }) {
   const allDays = useMemo(() => enumerateDates(party.startDate, party.endDate), [party]);
   const activities = useActivities(party.id);
+  const session = useSession();
+  const rsvp = useRsvp(party.id);
+  const clearRsvp = useClearRsvp(party.id);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const toggleExpanded = (id: string) => setExpandedId((current) => (current === id ? null : id));
 
@@ -41,6 +52,9 @@ export function PartyCalendar({ party }: { party: PartyDetail }) {
           activities={activitiesByDay[iso] ?? []}
           expandedId={expandedId}
           onToggleExpanded={toggleExpanded}
+          currentUserId={session.data?.id ?? null}
+          onRsvp={(activityId, status) => rsvp.mutate({ activityId, status })}
+          onClearRsvp={(activityId) => clearRsvp.mutate(activityId)}
         />
       ))}
     </div>
@@ -65,12 +79,18 @@ function DaySection({
   activities,
   expandedId,
   onToggleExpanded,
+  currentUserId,
+  onRsvp,
+  onClearRsvp,
 }: {
   iso: string;
   timezone: string;
   activities: Activity[];
   expandedId: string | null;
   onToggleExpanded: (id: string) => void;
+  currentUserId: string | null;
+  onRsvp: (activityId: string, status: 'GOING' | 'NOT_GOING') => void;
+  onClearRsvp: (activityId: string) => void;
 }) {
   const d = parseCivilDate(iso);
   const groups = useMemo(
@@ -96,6 +116,9 @@ function DaySection({
                     grouped={ev}
                     isExpanded={expandedId === ev.event.id}
                     onToggle={() => onToggleExpanded(ev.event.id)}
+                    currentUserId={currentUserId}
+                    onRsvp={onRsvp}
+                    onClearRsvp={onClearRsvp}
                   />
                 ))}
               </div>
@@ -131,14 +154,35 @@ function ActivityCard({
   grouped,
   isExpanded,
   onToggle,
+  currentUserId,
+  onRsvp,
+  onClearRsvp,
 }: {
   grouped: GroupedEvent;
   isExpanded: boolean;
   onToggle: () => void;
+  currentUserId: string | null;
+  onRsvp: (activityId: string, status: 'GOING' | 'NOT_GOING') => void;
+  onClearRsvp: (activityId: string) => void;
 }) {
   const { event, startMin, endMin } = grouped;
   const duration = Math.max(0, endMin - startMin);
   const creator = [event.createdBy.firstName, event.createdBy.lastName].filter(Boolean).join(' ');
+
+  const goingParticipants = event.participants.filter((p) => p.status === 'GOING');
+  const myParticipation = currentUserId
+    ? event.participants.find((p) => p.user.id === currentUserId)
+    : null;
+
+  const handleRsvpClick =
+    (status: 'GOING' | 'NOT_GOING') => (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
+      if (myParticipation?.status === status) {
+        onClearRsvp(event.id);
+      } else {
+        onRsvp(event.id, status);
+      }
+    };
 
   return (
     <button
@@ -146,8 +190,11 @@ function ActivityCard({
       onClick={onToggle}
       aria-expanded={isExpanded}
       className={cn(
-        'group relative flex-1 min-w-[60%] rounded-xl bg-bg-elev px-3 py-2.5 text-left flex flex-col overflow-hidden transition active:scale-[0.995]',
-        'border-[1.5px] shadow-md shadow-black/40',
+        'group relative rounded-xl bg-bg-elev text-left flex flex-col overflow-hidden transition-all duration-200 active:scale-[0.995]',
+        'border-[1.5px]',
+        isExpanded
+          ? 'basis-full px-5 py-4 shadow-xl shadow-black/50'
+          : 'flex-1 min-w-[60%] px-3 py-2.5 shadow-md shadow-black/40',
         !event.color && 'border-border',
         isExpanded && 'ring-2 ring-accent/40'
       )}
@@ -156,15 +203,33 @@ function ActivityCard({
         borderColor: event.color ?? undefined,
       }}
     >
-      <div className={cn('font-medium text-fg', !isExpanded && 'truncate')}>{event.title}</div>
+      <div
+        className={cn(
+          'text-fg font-medium',
+          isExpanded ? 'text-xl font-semibold leading-tight pr-2' : 'truncate'
+        )}
+      >
+        {event.title}
+      </div>
 
-      <div className="text-[11px] text-fg-muted tabular-nums mt-0.5">
+      <div
+        className={cn(
+          'text-fg-muted tabular-nums',
+          isExpanded ? 'text-sm mt-1.5' : 'text-[11px] mt-0.5'
+        )}
+      >
         {formatMinute(startMin)} – {formatMinute(endMin)}
         {duration > 0 && <> &middot; {formatDuration(duration)}</>}
       </div>
 
       {event.location && !isExpanded && (
-        <div className="text-xs text-fg-muted truncate mt-auto pt-1">{event.location}</div>
+        <div className="text-xs text-fg-muted truncate mt-1 pr-16">{event.location}</div>
+      )}
+
+      {goingParticipants.length > 0 && (
+        <div className="absolute bottom-2 right-2">
+          <GoingStackButton participants={goingParticipants} />
+        </div>
       )}
 
       <AnimatePresence initial={false}>
@@ -174,12 +239,33 @@ function ActivityCard({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
             className="overflow-hidden"
           >
-            <div className="pt-3 space-y-1.5 text-sm">
-              {event.location && <div className="text-fg-muted">{event.location}</div>}
-              {creator && <div className="text-xs text-fg-muted">Added by {creator}</div>}
+            <div className="pt-5 space-y-4">
+              {event.location && <div className="text-base text-fg">{event.location}</div>}
+              {creator && <div className="text-sm text-fg-muted">Added by {creator}</div>}
+
+              {currentUserId && (
+                <div className="flex gap-2.5 pt-1 pr-20">
+                  <RsvpButton
+                    active={myParticipation?.status === 'GOING'}
+                    variant="going"
+                    onClick={handleRsvpClick('GOING')}
+                  >
+                    <Check className="h-5 w-5" />
+                    Yes
+                  </RsvpButton>
+                  <RsvpButton
+                    active={myParticipation?.status === 'NOT_GOING'}
+                    variant="notGoing"
+                    onClick={handleRsvpClick('NOT_GOING')}
+                  >
+                    <X className="h-5 w-5" />
+                    No
+                  </RsvpButton>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -187,6 +273,129 @@ function ActivityCard({
     </button>
   );
 }
+
+// Long-press detector. Suppresses card-click propagation so tapping/holding
+// the avatar stack doesn't toggle the card.
+function useLongPress(callback: () => void, ms = 400) {
+  const timerRef = useRef<number | null>(null);
+  const clear = () => {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+  useEffect(() => clear, []);
+  return {
+    onPointerDown: (e: React.PointerEvent) => {
+      e.stopPropagation();
+      clear();
+      timerRef.current = window.setTimeout(callback, ms);
+    },
+    onPointerUp: (e: React.PointerEvent) => {
+      e.stopPropagation();
+      clear();
+    },
+    onPointerLeave: clear,
+    onPointerCancel: clear,
+    onClick: (e: React.MouseEvent) => e.stopPropagation(),
+  };
+}
+
+function GoingStackButton({ participants }: { participants: ActivityParticipant[] }) {
+  const [open, setOpen] = useState(false);
+  const press = useLongPress(() => setOpen(true), 400);
+
+  useEffect(() => {
+    if (!open) return;
+    // Defer attaching the dismiss listener so the long-press release itself
+    // doesn't immediately close the tooltip.
+    const t = window.setTimeout(() => {
+      const hide = () => setOpen(false);
+      document.addEventListener('pointerdown', hide, { once: true });
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [open]);
+
+  return (
+    <div className="relative" {...press}>
+      <GoingStack participants={participants} />
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 4, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.96 }}
+            transition={{ duration: 0.12 }}
+            className="absolute bottom-full right-0 mb-2 px-3 py-2 rounded-lg bg-black/95 text-white text-xs shadow-xl flex flex-col gap-1 items-end whitespace-nowrap pointer-events-none"
+          >
+            <div className="text-[10px] uppercase tracking-wide text-white/60">
+              Going ({participants.length})
+            </div>
+            {participants.map((p) => (
+              <span key={p.id}>{fullName(p.user)}</span>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+const MAX_VISIBLE_AVATARS = 3;
+
+function GoingStack({ participants }: { participants: ActivityParticipant[] }) {
+  const visible = participants.slice(0, MAX_VISIBLE_AVATARS);
+  const overflow = participants.length - visible.length;
+  return (
+    <div className="flex items-center -space-x-1">
+      {visible.map((p) => (
+        <Avatar
+          key={p.id}
+          userId={p.user.id}
+          firstName={p.user.firstName}
+          lastName={p.user.lastName}
+          size="2xs"
+          ringClassName="ring-1 ring-bg-elev"
+        />
+      ))}
+      {overflow > 0 && (
+        <span className="inline-flex items-center justify-center h-4 min-w-4 px-0.5 rounded-full bg-bg text-fg-muted text-[8px] font-semibold ring-1 ring-bg-elev shrink-0">
+          +{overflow}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function RsvpButton({
+  active,
+  variant,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  variant: 'going' | 'notGoing';
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-xl text-base font-medium border-2 transition active:scale-[0.98]',
+        active && variant === 'going' && 'bg-emerald-500/20 border-emerald-500/60 text-emerald-200',
+        active && variant === 'notGoing' && 'bg-rose-500/20 border-rose-500/60 text-rose-200',
+        !active && 'bg-bg/40 border-border text-fg-muted hover:bg-bg-elev'
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+const fullName = (u: { firstName: string | null; lastName: string | null }) =>
+  [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Unknown';
 
 // ---------- Overlap grouping ----------
 

@@ -24,9 +24,10 @@ function initialsOf(firstName: string | null, lastName: string | null): string {
   return (first + last).toUpperCase() || '?';
 }
 
-export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg';
+export type AvatarSize = '2xs' | 'xs' | 'sm' | 'md' | 'lg';
 
 const SIZE_CLASSES: Record<AvatarSize, string> = {
+  '2xs': 'h-4 w-4 text-[8px]',
   xs: 'h-6 w-6 text-[10px]',
   sm: 'h-7 w-7 text-[11px]',
   md: 'h-9 w-9 text-xs',

@@ -258,6 +258,39 @@ async function main() {
 
   await prisma.activity.createMany({ data: activities });
   console.log(`  inserted ${activities.length} activities`);
+
+  // Deterministic per-activity participant assignment so the UI is testable
+  // and re-running the seed yields the same shape.
+  const allUserIds = [party.createdById, ...fakeUsers.map((u) => u.id)];
+  const createdActivities = await prisma.activity.findMany({
+    where: { partyId: party.id },
+    select: { id: true, title: true },
+    orderBy: { startsAt: 'asc' },
+  });
+
+  const participantRows: Array<{
+    activityId: string;
+    userId: string;
+    status: 'GOING' | 'NOT_GOING';
+    respondedAt: Date;
+  }> = [];
+  const now = new Date();
+  for (const [idx, act] of createdActivities.entries()) {
+    // Pick ~60% going, ~10% not-going, rest undecided (no row).
+    for (const [uIdx, userId] of allUserIds.entries()) {
+      const slot = (idx * 7 + uIdx * 3) % 10;
+      if (slot < 6) {
+        participantRows.push({ activityId: act.id, userId, status: 'GOING', respondedAt: now });
+      } else if (slot < 7) {
+        participantRows.push({ activityId: act.id, userId, status: 'NOT_GOING', respondedAt: now });
+      }
+      // else: leave undecided (no row)
+    }
+  }
+  if (participantRows.length > 0) {
+    await prisma.activityParticipant.createMany({ data: participantRows });
+  }
+  console.log(`  inserted ${participantRows.length} participant rows`);
   console.log('Done.');
 }
 
