@@ -78,13 +78,10 @@ function DaySection({
       <div className="flex-1 min-w-0">
         <ol className="space-y-2">
           {groups.map((g) => (
-            <li key={g.key} className="space-y-1">
-              <div className="text-[11px] text-fg-muted tabular-nums">
-                {formatMinute(g.startMin)}
-              </div>
-              <div className="flex gap-2 flex-wrap">
+            <li key={g.key}>
+              <div className="flex gap-2 flex-wrap items-stretch">
                 {g.events.map((ev) => (
-                  <ActivityCard key={ev.id} activity={ev} />
+                  <ActivityCard key={ev.event.id} grouped={ev} />
                 ))}
               </div>
             </li>
@@ -95,12 +92,31 @@ function DaySection({
   );
 }
 
-function ActivityCard({ activity }: { activity: Activity }) {
+// Pixels-per-minute scaling for activity cards. Clamped so 30-min events stay
+// legible and full-day events don't dominate the layout.
+const MIN_HEIGHT_PX = 56;
+const MAX_HEIGHT_PX = 240;
+const PX_PER_MIN = 0.55;
+
+function cardHeight(durationMin: number): number {
+  const raw = 36 + PX_PER_MIN * durationMin;
+  return Math.min(MAX_HEIGHT_PX, Math.max(MIN_HEIGHT_PX, raw));
+}
+
+function ActivityCard({ grouped }: { grouped: GroupedEvent }) {
+  const { event, startMin, endMin } = grouped;
+  const duration = Math.max(0, endMin - startMin);
   return (
-    <article className="flex-1 min-w-[60%] rounded-xl bg-bg-elev border border-border px-3 py-2.5">
-      <div className="font-medium text-fg truncate">{activity.title}</div>
-      {activity.location && (
-        <div className="text-xs text-fg-muted truncate mt-0.5">{activity.location}</div>
+    <article
+      className="flex-1 min-w-[60%] rounded-xl bg-bg-elev border border-border px-3 py-2.5 flex flex-col"
+      style={{ minHeight: cardHeight(duration) }}
+    >
+      <div className="font-medium text-fg truncate">{event.title}</div>
+      <div className="text-[11px] text-fg-muted tabular-nums mt-0.5">
+        {formatMinute(startMin)} – {formatMinute(endMin)}
+      </div>
+      {event.location && (
+        <div className="text-xs text-fg-muted truncate mt-auto pt-1">{event.location}</div>
       )}
     </article>
   );
@@ -108,11 +124,17 @@ function ActivityCard({ activity }: { activity: Activity }) {
 
 // ---------- Overlap grouping ----------
 
+type GroupedEvent = {
+  event: Activity;
+  startMin: number;
+  endMin: number;
+};
+
 type OverlapGroup = {
   key: string;
   startMin: number;
   endMin: number;
-  events: Activity[];
+  events: GroupedEvent[];
 };
 
 function groupOverlapping(events: Activity[], date: string, timezone: string): OverlapGroup[] {
@@ -137,12 +159,13 @@ function groupOverlapping(events: Activity[], date: string, timezone: string): O
   for (const ev of sorted) {
     const startMin = minuteOf(ev.startsAt);
     const endMin = dayKeyInZone(ev.endsAt, timezone) === date ? minuteOf(ev.endsAt) : 24 * 60;
+    const grouped: GroupedEvent = { event: ev, startMin, endMin };
     const last = groups[groups.length - 1];
     if (last && startMin < last.endMin) {
-      last.events.push(ev);
+      last.events.push(grouped);
       last.endMin = Math.max(last.endMin, endMin);
     } else {
-      groups.push({ key: ev.id, startMin, endMin, events: [ev] });
+      groups.push({ key: ev.id, startMin, endMin, events: [grouped] });
     }
   }
   return groups;
