@@ -1,4 +1,4 @@
-import { dayKeyInZone, enumerateDates, parseCivilDate } from '@itin/shared/time';
+import { dayKeyInZone, enumerateDates, minutesInZone, parseCivilDate } from '@itin/shared/time';
 import { format } from 'date-fns';
 import { CalendarPlus, Check, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -21,6 +21,9 @@ export function PartyCalendar({ party }: { party: PartyDetail }) {
   const session = useSession();
   const rsvp = useRsvp(party.id);
   const clearRsvp = useClearRsvp(party.id);
+  const now = useNow();
+  const todayKey = dayKeyInZone(now, party.timezone);
+  const nowMin = minutesInZone(now, party.timezone);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const toggleExpanded = (id: string) => setExpandedId((current) => (current === id ? null : id));
 
@@ -55,6 +58,8 @@ export function PartyCalendar({ party }: { party: PartyDetail }) {
           currentUserId={session.data?.id ?? null}
           onRsvp={(activityId, status) => rsvp.mutate({ activityId, status })}
           onClearRsvp={(activityId) => clearRsvp.mutate(activityId)}
+          todayKey={todayKey}
+          nowMin={nowMin}
         />
       ))}
     </div>
@@ -82,6 +87,8 @@ function DaySection({
   currentUserId,
   onRsvp,
   onClearRsvp,
+  todayKey,
+  nowMin,
 }: {
   iso: string;
   timezone: string;
@@ -91,12 +98,35 @@ function DaySection({
   currentUserId: string | null;
   onRsvp: (activityId: string, status: 'GOING' | 'NOT_GOING') => void;
   onClearRsvp: (activityId: string) => void;
+  todayKey: string;
+  nowMin: number;
 }) {
   const d = parseCivilDate(iso);
   const groups = useMemo(
     () => groupOverlapping(activities, iso, timezone),
     [activities, iso, timezone]
   );
+
+  const isToday = iso === todayKey;
+  const isPastDay = iso < todayKey;
+
+  // Build a mixed list of groups + an optional "now" marker, sorted so the
+  // marker appears at the chronological position of the current time.
+  type RenderItem = { kind: 'group'; group: OverlapGroup } | { kind: 'now'; min: number };
+  const renderItems: RenderItem[] = [];
+  if (isToday) {
+    let inserted = false;
+    for (const g of groups) {
+      if (!inserted && g.endMin > nowMin) {
+        renderItems.push({ kind: 'now', min: nowMin });
+        inserted = true;
+      }
+      renderItems.push({ kind: 'group', group: g });
+    }
+    if (!inserted) renderItems.push({ kind: 'now', min: nowMin });
+  } else {
+    for (const g of groups) renderItems.push({ kind: 'group', group: g });
+  }
 
   return (
     <section className="flex gap-3 px-4 py-3 border-b border-border last:border-b-0 items-start">
@@ -107,23 +137,30 @@ function DaySection({
 
       <div className="flex-1 min-w-0">
         <ol className="space-y-2">
-          {groups.map((g) => (
-            <li key={g.key}>
-              <div className="flex gap-2 flex-wrap items-start">
-                {g.events.map((ev) => (
-                  <ActivityCard
-                    key={ev.event.id}
-                    grouped={ev}
-                    isExpanded={expandedId === ev.event.id}
-                    onToggle={() => onToggleExpanded(ev.event.id)}
-                    currentUserId={currentUserId}
-                    onRsvp={onRsvp}
-                    onClearRsvp={onClearRsvp}
-                  />
-                ))}
-              </div>
-            </li>
-          ))}
+          {renderItems.map((item) => {
+            if (item.kind === 'now') {
+              return <NowMarker key="now" min={item.min} />;
+            }
+            const g = item.group;
+            return (
+              <li key={g.key}>
+                <div className="flex gap-2 flex-wrap items-start">
+                  {g.events.map((ev) => (
+                    <ActivityCard
+                      key={ev.event.id}
+                      grouped={ev}
+                      isExpanded={expandedId === ev.event.id}
+                      onToggle={() => onToggleExpanded(ev.event.id)}
+                      currentUserId={currentUserId}
+                      onRsvp={onRsvp}
+                      onClearRsvp={onClearRsvp}
+                      isPast={isPastDay || (isToday && ev.endMin <= nowMin)}
+                    />
+                  ))}
+                </div>
+              </li>
+            );
+          })}
         </ol>
       </div>
     </section>
@@ -157,6 +194,7 @@ function ActivityCard({
   currentUserId,
   onRsvp,
   onClearRsvp,
+  isPast,
 }: {
   grouped: GroupedEvent;
   isExpanded: boolean;
@@ -164,6 +202,7 @@ function ActivityCard({
   currentUserId: string | null;
   onRsvp: (activityId: string, status: 'GOING' | 'NOT_GOING') => void;
   onClearRsvp: (activityId: string) => void;
+  isPast: boolean;
 }) {
   const { event, startMin, endMin } = grouped;
   const duration = Math.max(0, endMin - startMin);
@@ -196,7 +235,8 @@ function ActivityCard({
           ? 'basis-full px-5 py-4 shadow-xl shadow-black/50'
           : 'flex-1 min-w-[60%] px-3 py-2.5 shadow-md shadow-black/40',
         !event.color && 'border-border',
-        isExpanded && 'ring-2 ring-accent/40'
+        isExpanded && 'ring-2 ring-accent/40',
+        isPast && !isExpanded && 'opacity-55'
       )}
       style={{
         minHeight: isExpanded ? undefined : cardHeight(duration),
@@ -396,6 +436,45 @@ function RsvpButton({
 
 const fullName = (u: { firstName: string | null; lastName: string | null }) =>
   [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Unknown';
+
+// ---------- Now marker / clock ----------
+
+// Ticks at every wall-clock minute boundary, so the displayed "11:34 → 11:35"
+// transition happens exactly when the user expects it (not 30s late).
+function useNow(): Date {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    let timerId: number | null = null;
+    const scheduleNext = () => {
+      const d = new Date();
+      const msUntilNextMinute = 60_000 - (d.getTime() % 60_000);
+      timerId = window.setTimeout(() => {
+        setNow(new Date());
+        scheduleNext();
+      }, msUntilNextMinute);
+    };
+    scheduleNext();
+    return () => {
+      if (timerId !== null) window.clearTimeout(timerId);
+    };
+  }, []);
+  return now;
+}
+
+function NowMarker({ min }: { min: number }) {
+  return (
+    <li
+      aria-label={`Current time ${formatMinute(min)}`}
+      className="relative flex items-center gap-2 py-1.5"
+    >
+      <span className="h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_0_3px_rgba(244,63,94,0.18)] shrink-0" />
+      <span className="flex-1 h-px bg-rose-500/70" />
+      <span className="text-[10px] uppercase tracking-wider font-semibold text-rose-300/90 tabular-nums shrink-0">
+        Now &middot; {formatMinute(min)}
+      </span>
+    </li>
+  );
+}
 
 // ---------- Overlap grouping ----------
 
