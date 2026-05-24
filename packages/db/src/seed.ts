@@ -1,12 +1,29 @@
-// Local dev seed script: fills the most recently created party with a
-// variety of activities so the calendar UI has something to render.
+// Local dev seed script: fills the most recently created party with fake
+// members and a variety of activities so the calendar UI has something to render.
 //
 // Run from the repo root:    bun db:seed
 // Or:                        cd packages/db && bun run seed
 
+import type { User } from '@prisma/client';
 import { prisma } from './index.ts';
 
 const ONE_HOUR = 60 * 60 * 1000;
+const SEED_EMAIL_DOMAIN = 'seed.itin.local';
+
+const FAKE_PEOPLE: Array<{ firstName: string; lastName: string }> = [
+  { firstName: 'Alice', lastName: 'Park' },
+  { firstName: 'Ben', lastName: 'Chen' },
+  { firstName: 'Carmen', lastName: 'Lopez' },
+  { firstName: 'Daniel', lastName: 'Schwartz' },
+  { firstName: 'Elena', lastName: 'Rossi' },
+  { firstName: 'Fatima', lastName: 'Khan' },
+  { firstName: 'Gabriel', lastName: 'Mueller' },
+  { firstName: 'Hana', lastName: 'Suzuki' },
+  { firstName: 'Ivan', lastName: 'Petrov' },
+  { firstName: 'Julia', lastName: 'Andersson' },
+  { firstName: 'Karim', lastName: 'Hassan' },
+  { firstName: 'Liam', lastName: 'OSullivan' },
+];
 
 type Template = {
   // Days into the trip the activity starts (0-indexed against the party startDate).
@@ -135,9 +152,6 @@ const TEMPLATES: Template[] = [
 const parseLocalTime = (baseUtcMidnight: Date, hhmm: string, tz: string): Date => {
   const [h, m] = hhmm.split(':').map(Number);
   if (h === undefined || m === undefined) throw new Error(`Bad time: ${hhmm}`);
-  // baseUtcMidnight is the party's startDate stored as UTC midnight in Postgres.
-  // Build a Date that represents "h:m on that civil day in `tz`" by computing
-  // the offset between UTC and the target tz at that moment.
   const utcGuess = new Date(baseUtcMidnight.getTime() + h * ONE_HOUR + m * 60_000);
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: tz,
@@ -154,6 +168,50 @@ const parseLocalTime = (baseUtcMidnight: Date, hhmm: string, tz: string): Date =
   return new Date(utcGuess.getTime() - offsetMs);
 };
 
+const emailFor = (firstName: string, lastName: string) =>
+  `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${SEED_EMAIL_DOMAIN}`;
+
+async function upsertFakeUsers(): Promise<User[]> {
+  const users = await Promise.all(
+    FAKE_PEOPLE.map((p) => {
+      const email = emailFor(p.firstName, p.lastName);
+      return prisma.user.upsert({
+        where: { email },
+        update: { firstName: p.firstName, lastName: p.lastName },
+        create: {
+          email,
+          emailVerified: false,
+          firstName: p.firstName,
+          lastName: p.lastName,
+          name: `${p.firstName} ${p.lastName}`,
+        },
+      });
+    })
+  );
+  return users;
+}
+
+async function ensureMemberships(partyId: string, users: User[]) {
+  // Remove memberships for previous seeded users no longer in our list, then upsert all current ones.
+  const emails = users.map((u) => u.email).filter((e): e is string => Boolean(e));
+  await prisma.partyMember.deleteMany({
+    where: {
+      partyId,
+      user: { email: { endsWith: `@${SEED_EMAIL_DOMAIN}` } },
+      NOT: { user: { email: { in: emails } } },
+    },
+  });
+  await Promise.all(
+    users.map((u) =>
+      prisma.partyMember.upsert({
+        where: { partyId_userId: { partyId, userId: u.id } },
+        update: {},
+        create: { partyId, userId: u.id, role: 'MEMBER' },
+      })
+    )
+  );
+}
+
 async function main() {
   const party = await prisma.party.findFirst({
     orderBy: { createdAt: 'desc' },
@@ -169,13 +227,21 @@ async function main() {
     `Seeding "${party.title}" (${party.id}) — host: ${party.createdBy.firstName} ${party.createdBy.lastName}`
   );
 
-  // Wipe any previously seeded activities for this party so this script is idempotent.
+  const fakeUsers = await upsertFakeUsers();
+  console.log(`  upserted ${fakeUsers.length} fake users`);
+
+  await ensureMemberships(party.id, fakeUsers);
+  console.log(`  ensured ${fakeUsers.length} memberships`);
+
   const deleted = await prisma.activity.deleteMany({ where: { partyId: party.id } });
   console.log(`  cleared ${deleted.count} existing activities`);
 
   const startUtc = party.startDate;
+  // Spread activity authorship across the host + fake users so the
+  // "Added by ..." line shows variety.
+  const authors = [party.createdById, ...fakeUsers.map((u) => u.id)];
 
-  const activities = TEMPLATES.map((t) => {
+  const activities = TEMPLATES.map((t, i) => {
     const dayStart = new Date(startUtc.getTime() + t.dayOffset * 24 * ONE_HOUR);
     const startsAt = parseLocalTime(dayStart, t.start, party.timezone);
     const endsAt = new Date(startsAt.getTime() + t.durationMin * 60_000);
@@ -186,7 +252,7 @@ async function main() {
       endsAt,
       location: t.location,
       color: t.color,
-      createdById: party.createdById,
+      createdById: authors[i % authors.length] ?? party.createdById,
     };
   });
 
