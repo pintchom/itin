@@ -1,4 +1,4 @@
-import type { CreateActivityInput } from '@itin/shared/schemas/activity';
+import type { CreateActivityInput, UpdateActivityInput } from '@itin/shared/schemas/activity';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, assertOk } from './api';
 
@@ -11,6 +11,7 @@ export type ActivityParticipant = {
     id: string;
     firstName: string | null;
     lastName: string | null;
+    profileImageKey: string | null;
   };
 };
 
@@ -18,14 +19,17 @@ export type Activity = {
   id: string;
   partyId: string;
   title: string;
+  description: string | null;
   startsAt: string;
   endsAt: string;
   color: string | null;
   location: string | null;
+  coverImageKey: string | null;
   createdBy: {
     id: string;
     firstName: string | null;
     lastName: string | null;
+    profileImageKey: string | null;
   };
   participants: ActivityParticipant[];
 };
@@ -90,6 +94,40 @@ export function useCreateActivity(partyId: string) {
       });
       const data = await assertOk<{ activity: Activity }>(res);
       return data.activity;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: activitiesKey(partyId) }),
+  });
+}
+
+export function useUpdateActivity(partyId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      activityId,
+      input,
+    }: {
+      activityId: string;
+      input: UpdateActivityInput;
+    }) => {
+      const res = await api.api.activities[':activityId'].$patch({
+        param: { activityId },
+        json: input,
+      });
+      const data = await assertOk<{ activity: Activity }>(res);
+      return data.activity;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: activitiesKey(partyId) }),
+  });
+}
+
+export function useDeleteActivity(partyId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (activityId: string) => {
+      const res = await api.api.activities[':activityId'].$delete({
+        param: { activityId },
+      });
+      await assertOk<{ ok: true }>(res);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: activitiesKey(partyId) }),
   });

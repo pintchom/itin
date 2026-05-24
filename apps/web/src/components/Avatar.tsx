@@ -1,4 +1,5 @@
 import { cn } from '../lib/cn';
+import { profileImageUrl } from '../lib/images';
 
 // Deterministic OKLCH color from a stable seed (userId). Same person always
 // gets the same color across the app.
@@ -38,14 +39,38 @@ export type AvatarProps = {
   userId: string;
   firstName: string | null;
   lastName: string | null;
+  profileImageKey?: string | null;
   size?: AvatarSize;
   ringClassName?: string;
 };
 
-export function Avatar({ userId, firstName, lastName, size = 'sm', ringClassName }: AvatarProps) {
+export function Avatar({
+  userId,
+  firstName,
+  lastName,
+  profileImageKey,
+  size = 'sm',
+  ringClassName,
+}: AvatarProps) {
+  const name = [firstName, lastName].filter(Boolean).join(' ');
+
+  if (profileImageKey) {
+    return (
+      <img
+        src={profileImageUrl(profileImageKey, 'sm')}
+        alt={name}
+        className={cn(
+          'inline-block rounded-full object-cover shrink-0 select-none bg-bg-elev',
+          SIZE_CLASSES[size],
+          ringClassName
+        )}
+      />
+    );
+  }
+
   return (
     <span
-      aria-label={[firstName, lastName].filter(Boolean).join(' ')}
+      aria-label={name}
       className={cn(
         'inline-flex items-center justify-center rounded-full font-semibold text-white select-none shrink-0',
         SIZE_CLASSES[size],

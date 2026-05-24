@@ -1,8 +1,9 @@
 import { dayKeyInZone, enumerateDates, minutesInZone, parseCivilDate } from '@itin/shared/time';
 import { format } from 'date-fns';
-import { CalendarPlus, Check, X } from 'lucide-react';
+import { CalendarPlus, Check, Pencil, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   type Activity,
   type ActivityParticipant,
@@ -12,10 +13,19 @@ import {
 } from '../../lib/activities';
 import { useSession } from '../../lib/auth';
 import { cn } from '../../lib/cn';
+import { coverImageUrl } from '../../lib/images';
 import type { PartyDetail } from '../../lib/parties';
 import { Avatar } from '../Avatar';
 
-export function PartyCalendar({ party }: { party: PartyDetail }) {
+export function PartyCalendar({
+  party,
+  isHost,
+  onEditActivity,
+}: {
+  party: PartyDetail;
+  isHost: boolean;
+  onEditActivity: (activity: Activity) => void;
+}) {
   const allDays = useMemo(() => enumerateDates(party.startDate, party.endDate), [party]);
   const activities = useActivities(party.id);
   const session = useSession();
@@ -60,6 +70,8 @@ export function PartyCalendar({ party }: { party: PartyDetail }) {
           onClearRsvp={(activityId) => clearRsvp.mutate(activityId)}
           todayKey={todayKey}
           nowMin={nowMin}
+          isHost={isHost}
+          onEditActivity={onEditActivity}
         />
       ))}
     </div>
@@ -89,6 +101,8 @@ function DaySection({
   onClearRsvp,
   todayKey,
   nowMin,
+  isHost,
+  onEditActivity,
 }: {
   iso: string;
   timezone: string;
@@ -100,6 +114,8 @@ function DaySection({
   onClearRsvp: (activityId: string) => void;
   todayKey: string;
   nowMin: number;
+  isHost: boolean;
+  onEditActivity: (activity: Activity) => void;
 }) {
   const d = parseCivilDate(iso);
   const groups = useMemo(
@@ -129,14 +145,16 @@ function DaySection({
   }
 
   return (
-    <section className="flex gap-3 px-4 py-3 border-b border-border last:border-b-0 items-start">
-      <div className="sticky top-2 w-10 shrink-0 text-fg-muted">
-        <div className="text-[10px] uppercase tracking-wide">{format(d, 'EEE')}</div>
-        <div className="text-xl font-semibold leading-none mt-1 tabular-nums">{format(d, 'd')}</div>
+    <section className="flex gap-2.5 px-3 py-2 border-b border-border last:border-b-0 items-start">
+      <div className="sticky top-2 w-8 shrink-0 text-fg-muted">
+        <div className="text-[9px] uppercase tracking-wide">{format(d, 'EEE')}</div>
+        <div className="text-base font-semibold leading-none mt-0.5 tabular-nums">
+          {format(d, 'd')}
+        </div>
       </div>
 
       <div className="flex-1 min-w-0">
-        <ol className="space-y-2">
+        <ol className="space-y-1.5">
           {renderItems.map((item) => {
             if (item.kind === 'now') {
               return <NowMarker key="now" min={item.min} />;
@@ -145,18 +163,25 @@ function DaySection({
             return (
               <li key={g.key}>
                 <div className="flex gap-2 flex-wrap items-start">
-                  {g.events.map((ev) => (
-                    <ActivityCard
-                      key={ev.event.id}
-                      grouped={ev}
-                      isExpanded={expandedId === ev.event.id}
-                      onToggle={() => onToggleExpanded(ev.event.id)}
-                      currentUserId={currentUserId}
-                      onRsvp={onRsvp}
-                      onClearRsvp={onClearRsvp}
-                      isPast={isPastDay || (isToday && ev.endMin <= nowMin)}
-                    />
-                  ))}
+                  {g.events.map((ev) => {
+                    const isNow = isToday && ev.startMin <= nowMin && ev.endMin > nowMin;
+                    const canEdit = isHost || ev.event.createdBy.id === currentUserId;
+                    return (
+                      <ActivityCard
+                        key={ev.event.id}
+                        grouped={ev}
+                        isExpanded={expandedId === ev.event.id}
+                        onToggle={() => onToggleExpanded(ev.event.id)}
+                        currentUserId={currentUserId}
+                        onRsvp={onRsvp}
+                        onClearRsvp={onClearRsvp}
+                        isPast={isPastDay || (isToday && ev.endMin <= nowMin)}
+                        isNow={isNow}
+                        canEdit={canEdit}
+                        onEdit={() => onEditActivity(ev.event)}
+                      />
+                    );
+                  })}
                 </div>
               </li>
             );
@@ -169,9 +194,9 @@ function DaySection({
 
 // Pixels-per-minute scaling for activity cards. Clamped so 30-min events stay
 // legible and full-day events don't dominate the layout.
-const MIN_HEIGHT_PX = 56;
-const MAX_HEIGHT_PX = 240;
-const PX_PER_MIN = 0.55;
+const MIN_HEIGHT_PX = 46;
+const MAX_HEIGHT_PX = 200;
+const PX_PER_MIN = 0.45;
 
 function cardHeight(durationMin: number): number {
   const raw = 36 + PX_PER_MIN * durationMin;
@@ -195,6 +220,9 @@ function ActivityCard({
   onRsvp,
   onClearRsvp,
   isPast,
+  isNow,
+  canEdit,
+  onEdit,
 }: {
   grouped: GroupedEvent;
   isExpanded: boolean;
@@ -203,6 +231,9 @@ function ActivityCard({
   onRsvp: (activityId: string, status: 'GOING' | 'NOT_GOING') => void;
   onClearRsvp: (activityId: string) => void;
   isPast: boolean;
+  isNow: boolean;
+  canEdit: boolean;
+  onEdit: () => void;
 }) {
   const { event, startMin, endMin } = grouped;
   const duration = Math.max(0, endMin - startMin);
@@ -223,30 +254,75 @@ function ActivityCard({
       }
     };
 
+  const hasCover = !!event.coverImageKey;
+
   return (
     <button
       type="button"
       onClick={onToggle}
       aria-expanded={isExpanded}
       className={cn(
-        'group relative rounded-xl bg-bg-elev text-left flex flex-col overflow-hidden transition-all duration-200 active:scale-[0.995]',
-        'border-[1.5px]',
-        isExpanded
-          ? 'basis-full px-5 py-4 shadow-xl shadow-black/50'
-          : 'flex-1 min-w-[60%] px-3 py-2.5 shadow-md shadow-black/40',
-        !event.color && 'border-border',
-        isExpanded && 'ring-2 ring-accent/40',
+        'group relative rounded-lg text-left flex flex-col overflow-hidden active:scale-[0.995]',
+        'flex-1 min-w-[60%] border-[1.5px]',
+        'transition-[padding,box-shadow,border-color,min-height] duration-200 ease-out',
+        hasCover ? 'bg-bg' : 'bg-bg-elev',
+        isExpanded ? 'px-3 py-2 shadow-xl shadow-black/50' : 'px-2.5 py-1.5 shadow shadow-black/40',
+        !event.color && !isNow && 'border-border',
+        isNow && 'border-rose-500',
+        isExpanded && !isNow && 'ring-2 ring-accent/40',
         isPast && !isExpanded && 'opacity-55'
       )}
       style={{
-        minHeight: isExpanded ? undefined : cardHeight(duration),
-        borderColor: event.color ?? undefined,
+        minHeight: isExpanded ? Math.max(cardHeight(duration), 140) : cardHeight(duration),
+        borderColor: isNow ? undefined : (event.color ?? undefined),
       }}
     >
+      {hasCover && event.coverImageKey && (
+        <>
+          <img
+            src={coverImageUrl(event.coverImageKey, 'lg')}
+            alt=""
+            aria-hidden
+            className="absolute inset-0 h-full w-full object-cover pointer-events-none"
+          />
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/45 to-black/70 pointer-events-none"
+          />
+        </>
+      )}
+
+      {isNow && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-md ring-2 ring-rose-500/70 animate-pulse"
+        />
+      )}
+
+      {isExpanded && canEdit && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
+          aria-label="Edit activity"
+          className={cn(
+            'absolute top-2 right-2 z-20 h-7 w-7 rounded-full flex items-center justify-center transition active:scale-90',
+            hasCover
+              ? 'bg-black/45 text-white backdrop-blur'
+              : 'bg-bg/60 text-fg-muted hover:text-fg hover:bg-bg-elev border border-border'
+          )}
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+      )}
+
       <div
         className={cn(
-          'text-fg font-medium',
-          isExpanded ? 'text-xl font-semibold leading-tight pr-2' : 'truncate'
+          'relative z-10 text-sm font-medium',
+          hasCover ? 'text-white drop-shadow-sm' : 'text-fg',
+          isExpanded ? (canEdit ? 'pr-10' : 'pr-2') : 'truncate'
         )}
       >
         {event.title}
@@ -254,8 +330,8 @@ function ActivityCard({
 
       <div
         className={cn(
-          'text-fg-muted tabular-nums',
-          isExpanded ? 'text-sm mt-1.5' : 'text-[11px] mt-0.5'
+          'relative z-10 text-[10px] tabular-nums mt-0.5',
+          hasCover ? 'text-white/85' : 'text-fg-muted'
         )}
       >
         {formatMinute(startMin)} – {formatMinute(endMin)}
@@ -263,11 +339,18 @@ function ActivityCard({
       </div>
 
       {event.location && !isExpanded && (
-        <div className="text-xs text-fg-muted truncate mt-1 pr-16">{event.location}</div>
+        <div
+          className={cn(
+            'relative z-10 text-[11px] truncate mt-0.5 pr-14',
+            hasCover ? 'text-white/85' : 'text-fg-muted'
+          )}
+        >
+          {event.location}
+        </div>
       )}
 
       {goingParticipants.length > 0 && (
-        <div className="absolute bottom-2 right-2">
+        <div className="absolute bottom-1.5 right-1.5 z-10">
           <GoingStackButton participants={goingParticipants} />
         </div>
       )}
@@ -280,29 +363,47 @@ function ActivityCard({
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.22, ease: 'easeOut' }}
-            className="overflow-hidden"
+            className="relative z-10 overflow-hidden"
           >
-            <div className="pt-5 space-y-4">
-              {event.location && <div className="text-base text-fg">{event.location}</div>}
-              {creator && <div className="text-sm text-fg-muted">Added by {creator}</div>}
+            <div className="pt-2.5 space-y-2.5">
+              {event.location && (
+                <div className={cn('text-[11px]', hasCover ? 'text-white/85' : 'text-fg-muted')}>
+                  {event.location}
+                </div>
+              )}
+              {event.description && (
+                <div
+                  className={cn(
+                    'text-sm whitespace-pre-wrap leading-snug',
+                    hasCover ? 'text-white/95' : 'text-fg'
+                  )}
+                >
+                  {event.description}
+                </div>
+              )}
+              {creator && (
+                <div className={cn('text-[11px]', hasCover ? 'text-white/70' : 'text-fg-muted')}>
+                  Added by {creator}
+                </div>
+              )}
 
               {currentUserId && (
-                <div className="flex gap-2.5 pt-1 pr-20">
+                <div className="flex gap-2 pt-0.5">
                   <RsvpButton
                     active={myParticipation?.status === 'GOING'}
                     variant="going"
+                    label="Going"
                     onClick={handleRsvpClick('GOING')}
                   >
-                    <Check className="h-5 w-5" />
-                    Yes
+                    <Check className="h-4 w-4" strokeWidth={2.5} />
                   </RsvpButton>
                   <RsvpButton
                     active={myParticipation?.status === 'NOT_GOING'}
                     variant="notGoing"
+                    label="Not going"
                     onClick={handleRsvpClick('NOT_GOING')}
                   >
-                    <X className="h-5 w-5" />
-                    No
+                    <X className="h-4 w-4" strokeWidth={2.5} />
                   </RsvpButton>
                 </div>
               )}
@@ -342,42 +443,61 @@ function useLongPress(callback: () => void, ms = 400) {
 }
 
 function GoingStackButton({ participants }: { participants: ActivityParticipant[] }) {
-  const [open, setOpen] = useState(false);
-  const press = useLongPress(() => setOpen(true), 400);
+  const stackRef = useRef<HTMLDivElement>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ right: number; bottom: number } | null>(null);
+
+  const showTooltip = () => {
+    const rect = stackRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    // Anchor the tooltip just above the stack, right-aligned with its right edge.
+    setTooltipPos({
+      right: window.innerWidth - rect.right,
+      bottom: window.innerHeight - rect.top + 6,
+    });
+  };
+
+  const press = useLongPress(showTooltip, 400);
 
   useEffect(() => {
-    if (!open) return;
+    if (!tooltipPos) return;
     // Defer attaching the dismiss listener so the long-press release itself
     // doesn't immediately close the tooltip.
     const t = window.setTimeout(() => {
-      const hide = () => setOpen(false);
+      const hide = () => setTooltipPos(null);
       document.addEventListener('pointerdown', hide, { once: true });
     }, 0);
     return () => window.clearTimeout(t);
-  }, [open]);
+  }, [tooltipPos]);
 
   return (
-    <div className="relative" {...press}>
-      <GoingStack participants={participants} />
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 4, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.96 }}
-            transition={{ duration: 0.12 }}
-            className="absolute bottom-full right-0 mb-2 px-3 py-2 rounded-lg bg-black/95 text-white text-xs shadow-xl flex flex-col gap-1 items-end whitespace-nowrap pointer-events-none"
-          >
-            <div className="text-[10px] uppercase tracking-wide text-white/60">
-              Going ({participants.length})
-            </div>
-            {participants.map((p) => (
-              <span key={p.id}>{fullName(p.user)}</span>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    <>
+      <div ref={stackRef} className="relative" {...press}>
+        <GoingStack participants={participants} />
+      </div>
+      {createPortal(
+        <AnimatePresence>
+          {tooltipPos && (
+            <motion.div
+              key="going-tooltip"
+              initial={{ opacity: 0, y: 4, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 4, scale: 0.96 }}
+              transition={{ duration: 0.12 }}
+              className="fixed z-[100] max-w-[80vw] px-3 py-2 rounded-lg bg-black/95 text-white text-xs shadow-xl flex flex-col gap-1 items-end whitespace-nowrap pointer-events-none"
+              style={{ right: tooltipPos.right, bottom: tooltipPos.bottom }}
+            >
+              <div className="text-[10px] uppercase tracking-wide text-white/60">
+                Going ({participants.length})
+              </div>
+              {participants.map((p) => (
+                <span key={p.id}>{fullName(p.user)}</span>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+    </>
   );
 }
 
@@ -394,6 +514,7 @@ function GoingStack({ participants }: { participants: ActivityParticipant[] }) {
           userId={p.user.id}
           firstName={p.user.firstName}
           lastName={p.user.lastName}
+          profileImageKey={p.user.profileImageKey}
           size="2xs"
           ringClassName="ring-1 ring-bg-elev"
         />
@@ -410,11 +531,13 @@ function GoingStack({ participants }: { participants: ActivityParticipant[] }) {
 function RsvpButton({
   active,
   variant,
+  label,
   onClick,
   children,
 }: {
   active: boolean;
   variant: 'going' | 'notGoing';
+  label: string;
   onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
   children: React.ReactNode;
 }) {
@@ -422,10 +545,12 @@ function RsvpButton({
     <button
       type="button"
       onClick={onClick}
+      aria-label={label}
+      aria-pressed={active}
       className={cn(
-        'flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-xl text-base font-medium border-2 transition active:scale-[0.98]',
-        active && variant === 'going' && 'bg-emerald-500/20 border-emerald-500/60 text-emerald-200',
-        active && variant === 'notGoing' && 'bg-rose-500/20 border-rose-500/60 text-rose-200',
+        'inline-flex items-center justify-center h-8 w-8 rounded-full border-[1.5px] transition active:scale-90',
+        active && variant === 'going' && 'bg-emerald-500/25 border-emerald-500 text-emerald-100',
+        active && variant === 'notGoing' && 'bg-rose-500/25 border-rose-500 text-rose-100',
         !active && 'bg-bg/40 border-border text-fg-muted hover:bg-bg-elev'
       )}
     >
@@ -465,11 +590,11 @@ function NowMarker({ min }: { min: number }) {
   return (
     <li
       aria-label={`Current time ${formatMinute(min)}`}
-      className="relative flex items-center gap-2 py-1.5"
+      className="relative flex items-center gap-1.5 py-1"
     >
-      <span className="h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_0_3px_rgba(244,63,94,0.18)] shrink-0" />
+      <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shadow-[0_0_0_2.5px_rgba(244,63,94,0.18)] shrink-0" />
       <span className="flex-1 h-px bg-rose-500/70" />
-      <span className="text-[10px] uppercase tracking-wider font-semibold text-rose-300/90 tabular-nums shrink-0">
+      <span className="text-[9px] uppercase tracking-wider font-semibold text-rose-300/90 tabular-nums shrink-0">
         Now &middot; {formatMinute(min)}
       </span>
     </li>

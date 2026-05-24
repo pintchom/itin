@@ -39,6 +39,7 @@ export function MembersSheet({
                     userId={m.user.id}
                     firstName={m.user.firstName}
                     lastName={m.user.lastName}
+                    profileImageKey={m.user.profileImageKey}
                     size="lg"
                   />
                   <div className="min-w-0 flex-1">

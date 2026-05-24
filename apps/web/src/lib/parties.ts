@@ -19,7 +19,12 @@ export type PartyDetail = PartySummary & {
   members: Array<{
     id: string;
     role: PartyRole;
-    user: { id: string; firstName: string | null; lastName: string | null };
+    user: {
+      id: string;
+      firstName: string | null;
+      lastName: string | null;
+      profileImageKey: string | null;
+    };
   }>;
 };
 
