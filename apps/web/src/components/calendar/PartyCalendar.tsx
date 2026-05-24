@@ -1,13 +1,17 @@
 import { dayKeyInZone, enumerateDates, parseCivilDate } from '@itin/shared/time';
 import { format } from 'date-fns';
 import { CalendarPlus } from 'lucide-react';
-import { useMemo } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useMemo, useState } from 'react';
 import { type Activity, useActivities } from '../../lib/activities';
+import { cn } from '../../lib/cn';
 import type { PartyDetail } from '../../lib/parties';
 
 export function PartyCalendar({ party }: { party: PartyDetail }) {
   const allDays = useMemo(() => enumerateDates(party.startDate, party.endDate), [party]);
   const activities = useActivities(party.id);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const toggleExpanded = (id: string) => setExpandedId((current) => (current === id ? null : id));
 
   const activitiesByDay = useMemo(() => {
     const map: Record<string, Activity[]> = {};
@@ -35,6 +39,8 @@ export function PartyCalendar({ party }: { party: PartyDetail }) {
           iso={iso}
           timezone={party.timezone}
           activities={activitiesByDay[iso] ?? []}
+          expandedId={expandedId}
+          onToggleExpanded={toggleExpanded}
         />
       ))}
     </div>
@@ -57,10 +63,14 @@ function DaySection({
   iso,
   timezone,
   activities,
+  expandedId,
+  onToggleExpanded,
 }: {
   iso: string;
   timezone: string;
   activities: Activity[];
+  expandedId: string | null;
+  onToggleExpanded: (id: string) => void;
 }) {
   const d = parseCivilDate(iso);
   const groups = useMemo(
@@ -79,9 +89,14 @@ function DaySection({
         <ol className="space-y-2">
           {groups.map((g) => (
             <li key={g.key}>
-              <div className="flex gap-2 flex-wrap items-stretch">
+              <div className="flex gap-2 flex-wrap items-start">
                 {g.events.map((ev) => (
-                  <ActivityCard key={ev.event.id} grouped={ev} />
+                  <ActivityCard
+                    key={ev.event.id}
+                    grouped={ev}
+                    isExpanded={expandedId === ev.event.id}
+                    onToggle={() => onToggleExpanded(ev.event.id)}
+                  />
                 ))}
               </div>
             </li>
@@ -103,22 +118,76 @@ function cardHeight(durationMin: number): number {
   return Math.min(MAX_HEIGHT_PX, Math.max(MIN_HEIGHT_PX, raw));
 }
 
-function ActivityCard({ grouped }: { grouped: GroupedEvent }) {
+function formatDuration(min: number): string {
+  if (min <= 0) return '';
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+function ActivityCard({
+  grouped,
+  isExpanded,
+  onToggle,
+}: {
+  grouped: GroupedEvent;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
   const { event, startMin, endMin } = grouped;
   const duration = Math.max(0, endMin - startMin);
+  const creator = [event.createdBy.firstName, event.createdBy.lastName].filter(Boolean).join(' ');
+
   return (
-    <article
-      className="flex-1 min-w-[60%] rounded-xl bg-bg-elev border border-border px-3 py-2.5 flex flex-col"
-      style={{ minHeight: cardHeight(duration) }}
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={isExpanded}
+      className={cn(
+        'group relative flex-1 min-w-[60%] rounded-xl bg-bg-elev border border-border px-3 py-2.5 text-left flex flex-col overflow-hidden transition active:scale-[0.995]',
+        isExpanded && 'ring-2 ring-accent/40'
+      )}
+      style={{ minHeight: isExpanded ? undefined : cardHeight(duration) }}
     >
-      <div className="font-medium text-fg truncate">{event.title}</div>
+      {event.color && (
+        <span
+          aria-hidden
+          className="absolute left-0 top-0 bottom-0 w-1"
+          style={{ backgroundColor: event.color }}
+        />
+      )}
+
+      <div className={cn('font-medium text-fg', !isExpanded && 'truncate')}>{event.title}</div>
+
       <div className="text-[11px] text-fg-muted tabular-nums mt-0.5">
         {formatMinute(startMin)} – {formatMinute(endMin)}
+        {duration > 0 && <> &middot; {formatDuration(duration)}</>}
       </div>
-      {event.location && (
+
+      {event.location && !isExpanded && (
         <div className="text-xs text-fg-muted truncate mt-auto pt-1">{event.location}</div>
       )}
-    </article>
+
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <motion.div
+            key="detail"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <div className="pt-3 space-y-1.5 text-sm">
+              {event.location && <div className="text-fg-muted">{event.location}</div>}
+              {creator && <div className="text-xs text-fg-muted">Added by {creator}</div>}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </button>
   );
 }
 

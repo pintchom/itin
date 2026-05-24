@@ -9,6 +9,11 @@ export type Activity = {
   endsAt: string;
   color: string | null;
   location: string | null;
+  createdBy: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+  };
 };
 
 const activitiesKey = (partyId: string) => ['activities', partyId] as const;

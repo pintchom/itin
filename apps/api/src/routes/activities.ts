@@ -21,6 +21,9 @@ export const activityRoutes = new Hono<Env>()
     const activities = await prisma.activity.findMany({
       where: { partyId },
       orderBy: { startsAt: 'asc' },
+      include: {
+        createdBy: { select: { id: true, firstName: true, lastName: true } },
+      },
     });
 
     return c.json({
@@ -32,6 +35,7 @@ export const activityRoutes = new Hono<Env>()
         endsAt: a.endsAt.toISOString(),
         location: a.location,
         color: a.color,
+        createdBy: a.createdBy,
       })),
     });
   });
