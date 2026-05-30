@@ -1,5 +1,10 @@
 # Pin the build toolchain. Nixpacks' default Node (18) was removed from nixpkgs
 # after reaching EOL, which breaks the build with "Node.js 18.x has been removed".
 # Bun is the actual runtime; Node 22 is kept only because the Prisma CLI needs it.
+#
+# nixLibs are added to LD_LIBRARY_PATH at build + runtime. `sharp`'s prebuilt
+# native binary needs the GCC C++ runtime (libstdc++.so.6) and libvips deps;
+# without these the API crashes on boot with ERR_DLOPEN_FAILED.
 [phases.setup]
 nixPkgs = ["nodejs_22", "bun"]
+nixLibs = ["vips", "glib"]
