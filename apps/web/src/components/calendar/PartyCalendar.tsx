@@ -455,7 +455,7 @@ function ActivityCard({
       )}
 
       {goingParticipants.length > 0 && (
-        <div className="absolute bottom-1.5 right-1.5 z-10">
+        <div className="absolute bottom-1.5 right-1.5 z-20">
           <GoingStackButton participants={goingParticipants} />
         </div>
       )}
