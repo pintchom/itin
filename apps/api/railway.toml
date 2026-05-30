@@ -3,17 +3,16 @@
 #   Settings → Service → Config-as-Code Path = apps/api/railway.toml
 
 [build]
-builder = "NIXPACKS"
+builder = "RAILPACK"
 # Run the db package's `generate` script — it uses the workspace-pinned Prisma 6
 # via bun's resolver. (`bunx prisma` fetches Prisma 7, which breaks on the
-# `url = env()` datasource syntax; the raw node_modules/.bin path isn't reliably
-# resolvable in the build container.)
+# `url = env()` datasource syntax.)
 buildCommand = "bun install --frozen-lockfile && cd packages/db && bun run generate"
 
 [deploy]
-# Migrate on boot, then start the API from the repo root. Plain `cd` chain — no
-# subshell/parens, which Railway's start-command parser rejects.
-startCommand = "cd packages/db && bun run migrate:deploy && cd /app && bun run apps/api/src/index.ts"
+# Migrate on boot, then start the API. `cd ../..` returns to the repo root from
+# packages/db without hardcoding an absolute workdir. No subshell/parens.
+startCommand = "cd packages/db && bun run migrate:deploy && cd ../.. && bun run apps/api/src/index.ts"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"

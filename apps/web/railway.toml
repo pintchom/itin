@@ -3,7 +3,7 @@
 #   Settings → Service → Config-as-Code Path = apps/web/railway.toml
 
 [build]
-builder = "NIXPACKS"
+builder = "RAILPACK"
 # VITE_API_ORIGIN is a build-time env, so it must be set on the Railway service.
 buildCommand = "bun install --frozen-lockfile && cd apps/web && bun run build"
 
