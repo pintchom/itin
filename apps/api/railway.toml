@@ -4,14 +4,15 @@
 
 [build]
 builder = "NIXPACKS"
-# Build context is the repo root. Use the workspace-pinned Prisma 6 (via the db
-# package script) instead of `bunx prisma`, which fetches Prisma 7 (latest) and
-# breaks on the `url = env()` datasource syntax.
-buildCommand = "bun install --frozen-lockfile && (cd packages/db && bun run generate)"
+# Build context is the repo root. Call the workspace-pinned Prisma 6 binary
+# directly (hoisted to node_modules/.bin) — `bunx prisma` fetches Prisma 7
+# (latest), which breaks on the `url = env()` datasource syntax.
+buildCommand = "bun install --frozen-lockfile && node_modules/.bin/prisma generate --schema=packages/db/prisma/schema"
 
 [deploy]
-# Run pending migrations on boot (local Prisma 6), then start the API from root.
-startCommand = "(cd packages/db && bun run migrate:deploy) && bun run apps/api/src/index.ts"
+# Run pending migrations on boot, then start the API. No subshell/parens —
+# Railway's start-command parser rejects them.
+startCommand = "node_modules/.bin/prisma migrate deploy --schema=packages/db/prisma/schema && bun run apps/api/src/index.ts"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
