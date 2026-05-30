@@ -7,4 +7,6 @@
 # without these the API crashes on boot with ERR_DLOPEN_FAILED.
 [phases.setup]
 nixPkgs = ["nodejs_22", "bun"]
-nixLibs = ["vips", "glib"]
+# `stdenv.cc.cc.lib` provides libstdc++.so.6 (the GCC C++ runtime) that sharp's
+# native binary dlopens; vips/glib cover the rest of sharp's image deps.
+nixLibs = ["stdenv.cc.cc.lib", "vips", "glib"]
