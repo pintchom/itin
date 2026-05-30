@@ -1,0 +1,5 @@
+# Pin the build toolchain. Nixpacks' default Node (18) was removed from nixpkgs
+# after reaching EOL, which breaks the build with "Node.js 18.x has been removed".
+# Bun is the actual runtime; Node 22 is kept only because the Prisma CLI needs it.
+[phases.setup]
+nixPkgs = ["nodejs_22", "bun"]
