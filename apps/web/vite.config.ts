@@ -58,5 +58,11 @@ export default defineConfig(({ mode }) => {
         '/images': { target: apiOrigin, changeOrigin: true },
       },
     },
+    // The production `vite preview` server (used on Railway) rejects unknown
+    // Host headers unless they're allowlisted. Railway's domain is dynamic.
+    preview: {
+      host: true,
+      allowedHosts: true,
+    },
   };
 });

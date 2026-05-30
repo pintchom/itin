@@ -575,9 +575,16 @@ function useLongPress(callback: () => void, ms = 400) {
   };
 }
 
-function GoingStackButton({ participants }: { participants: ActivityParticipant[] }) {
+function GoingStackButton({
+  participants,
+}: {
+  participants: ActivityParticipant[];
+}) {
   const stackRef = useRef<HTMLDivElement>(null);
-  const [tooltipPos, setTooltipPos] = useState<{ right: number; bottom: number } | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{
+    right: number;
+    bottom: number;
+  } | null>(null);
 
   const showTooltip = () => {
     const rect = stackRef.current?.getBoundingClientRect();

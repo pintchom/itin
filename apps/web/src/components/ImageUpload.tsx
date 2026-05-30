@@ -4,6 +4,8 @@ import { ApiError } from '../lib/api';
 import { cn } from '../lib/cn';
 import { coverImageUrl } from '../lib/images';
 
+const apiOrigin = import.meta.env.VITE_API_ORIGIN ?? '';
+
 export type ImageUploadProps = {
   value: string | null;
   onChange: (key: string | null) => void;
@@ -39,7 +41,7 @@ export function ImageUpload({
     try {
       const body = new FormData();
       body.append('file', file);
-      const res = await fetch('/images', {
+      const res = await fetch(`${apiOrigin}/images`, {
         method: 'POST',
         body,
         credentials: 'include',
